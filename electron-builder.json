@@ -1,0 +1,52 @@
+{
+  "appId": "com.opticlean.pro",
+  "productName": "OptiClean Pro",
+  "directories": {
+    "output": "release",
+    "buildResources": "public"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "extraMetadata": {
+    "main": "electron/main.js"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/Logo1.png",
+    "requestedExecutionLevel": "requireAdministrator"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "allowElevation": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "OptiClean Pro",
+    "deleteAppDataOnUninstall": true
+  },
+  "portable": {
+    "artifactName": "${productName}-${version}-Portable.${ext}"
+  },
+  "mac": {
+    "target": ["dmg"],
+    "icon": "public/Logo1.png",
+    "category": "public.app-category.utilities"
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "icon": "public/Logo1.png",
+    "category": "Utility"
+  }
+}

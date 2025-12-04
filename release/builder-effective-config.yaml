@@ -1,0 +1,16 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.opticlean.pro
+productName: OptiClean Pro
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+extraResources: []
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+electronVersion: 39.2.5
