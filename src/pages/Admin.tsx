@@ -3,7 +3,9 @@ import { useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Key, Copy, Check, Plus, Shield, User, Settings } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OutletContext } from '@/types/outlet-context';
@@ -16,6 +18,8 @@ interface ActivationCode {
   is_used: boolean;
   used_at: string | null;
   used_by: string | null;
+  validity_days: number | null;
+  expires_at: string | null;
 }
 
 const Admin = () => {
@@ -23,6 +27,7 @@ const Admin = () => {
   const [activationCodes, setActivationCodes] = useState<ActivationCode[]>([]);
   const [loading, setLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [validityDays, setValidityDays] = useState<string>('30');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,6 +49,15 @@ const Admin = () => {
   };
 
   const generateActivationCode = async () => {
+    if (!userId) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const code = Array.from({ length: 3 }, () =>
@@ -55,24 +69,51 @@ const Admin = () => {
         .insert({
           code,
           created_by: userId,
+          validity_days: parseInt(validityDays),
         });
 
       if (error) throw error;
 
       toast({
         title: "Código gerado",
-        description: `Código: ${code}`,
+        description: `Código: ${code} (validade: ${validityDays} dias)`,
       });
 
       loadActivationCodes();
     } catch (error: any) {
+      console.error('Erro ao gerar código:', error);
       toast({
         title: "Erro",
-        description: error.message,
+        description: error.message || "Erro ao gerar código",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteActivationCode = async (codeId: string, codeValue: string) => {
+    try {
+      const { error } = await supabase
+        .from('activation_codes')
+        .delete()
+        .eq('id', codeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Código deletado",
+        description: `O código ${codeValue} foi removido. Usuários que usavam esse código perderão acesso.`,
+      });
+
+      loadActivationCodes();
+    } catch (error: any) {
+      console.error('Erro ao deletar código:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao deletar código",
+        variant: "destructive",
+      });
     }
   };
 
@@ -84,6 +125,15 @@ const Admin = () => {
       description: "Código copiado para a área de transferência",
     });
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('pt-BR');
+  };
+
+  const isCodeExpired = (code: ActivationCode) => {
+    if (!code.is_used || !code.expires_at) return false;
+    return new Date(code.expires_at) < new Date();
   };
 
   const availableCodes = activationCodes.filter(c => !c.is_used).length;
@@ -170,22 +220,42 @@ const Admin = () => {
           {/* Generate Code */}
           <Card className="metric-card border-primary/20">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="text-sm font-medium">Gerar Código</CardTitle>
                   <CardDescription className="text-xs">
-                    Crie códigos para novos usuários
+                    Crie códigos com validade personalizada
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={generateActivationCode}
-                  disabled={loading}
-                  className="btn-primary"
-                  size="sm"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  {loading ? 'Gerando...' : 'Novo Código'}
-                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <Select value={validityDays} onValueChange={setValidityDays}>
+                      <SelectTrigger className="w-[120px] h-9">
+                        <SelectValue placeholder="Validade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 dia</SelectItem>
+                        <SelectItem value="7">7 dias</SelectItem>
+                        <SelectItem value="15">15 dias</SelectItem>
+                        <SelectItem value="30">30 dias</SelectItem>
+                        <SelectItem value="60">60 dias</SelectItem>
+                        <SelectItem value="90">90 dias</SelectItem>
+                        <SelectItem value="180">180 dias</SelectItem>
+                        <SelectItem value="365">365 dias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    onClick={generateActivationCode}
+                    disabled={loading || !userId}
+                    className="btn-primary"
+                    size="sm"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    {loading ? 'Gerando...' : 'Novo Código'}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
           </Card>
@@ -208,11 +278,17 @@ const Admin = () => {
                   {activationCodes.map((code, index) => (
                     <div
                       key={code.id}
-                      className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50 hover:border-primary/20 transition-all animate-fade-up"
+                      className={`flex items-center justify-between p-3 bg-background/50 rounded-lg border transition-all animate-fade-up ${
+                        isCodeExpired(code) 
+                          ? 'border-destructive/30 bg-destructive/5' 
+                          : 'border-border/50 hover:border-primary/20'
+                      }`}
                       style={{ animationDelay: `${index * 0.02}s` }}
                     >
                       <div className="flex items-center gap-3">
-                        <code className="text-sm font-mono font-semibold text-primary">
+                        <code className={`text-sm font-mono font-semibold ${
+                          isCodeExpired(code) ? 'text-destructive' : 'text-primary'
+                        }`}>
                           {code.code}
                         </code>
                         <Button
@@ -229,10 +305,19 @@ const Admin = () => {
                         </Button>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground hidden sm:block">
-                          {new Date(code.created_at).toLocaleDateString('pt-BR')}
-                        </span>
-                        {code.is_used ? (
+                        <div className="text-right hidden sm:block">
+                          <span className="text-xs text-muted-foreground block">
+                            {formatDate(code.created_at)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/70">
+                            {code.validity_days || 30} dias
+                          </span>
+                        </div>
+                        {isCodeExpired(code) ? (
+                          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-destructive/10 text-destructive uppercase">
+                            Expirado
+                          </span>
+                        ) : code.is_used ? (
                           <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground uppercase">
                             Usado
                           </span>
@@ -241,6 +326,40 @@ const Admin = () => {
                             Disponível
                           </span>
                         )}
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Deletar código?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. O código <strong>{code.code}</strong> será removido permanentemente.
+                                {code.is_used && (
+                                  <span className="block mt-2 text-destructive font-medium">
+                                    ⚠️ Este código está em uso. O usuário associado perderá o acesso.
+                                  </span>
+                                )}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteActivationCode(code.id, code.code)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Deletar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}

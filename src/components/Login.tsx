@@ -94,12 +94,24 @@ const Login = ({ onLogin }: LoginProps) => {
         if (!authData.user) throw new Error('Erro ao criar conta');
 
         if (!isFounder && activationCode) {
+          // Buscar validade do código
+          const { data: codeData } = await supabase
+            .from('activation_codes')
+            .select('validity_days')
+            .eq('code', activationCode.trim())
+            .maybeSingle();
+
+          const validityDays = codeData?.validity_days || 30;
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + validityDays);
+
           const { error: updateError } = await supabase
             .from('activation_codes')
             .update({
               is_used: true,
               used_by: authData.user.id,
               used_at: new Date().toISOString(),
+              expires_at: expiresAt.toISOString(),
             })
             .eq('code', activationCode.trim());
 
