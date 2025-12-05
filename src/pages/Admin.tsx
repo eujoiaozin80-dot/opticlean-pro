@@ -20,6 +20,7 @@ interface ActivationCode {
   used_by: string | null;
   validity_days: number | null;
   expires_at: string | null;
+  user_email?: string;
 }
 
 const Admin = () => {
@@ -42,7 +43,23 @@ const Admin = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setActivationCodes(data || []);
+
+      // Buscar emails dos usuários que usaram os códigos
+      const codesWithUsers = await Promise.all(
+        (data || []).map(async (code) => {
+          if (code.used_by) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('id', code.used_by)
+              .maybeSingle();
+            return { ...code, user_email: profile?.email };
+          }
+          return code;
+        })
+      );
+
+      setActivationCodes(codesWithUsers);
     } catch (error: any) {
       console.error('Erro ao carregar códigos:', error);
     }
@@ -60,9 +77,11 @@ const Admin = () => {
 
     setLoading(true);
     try {
-      const code = Array.from({ length: 3 }, () =>
+      // Gerar código com prefixo OPT-
+      const randomPart = Array.from({ length: 2 }, () =>
         Math.random().toString(36).substring(2, 6).toUpperCase()
       ).join('-');
+      const code = `OPT-${randomPart}`;
 
       const { error } = await supabase
         .from('activation_codes')
@@ -285,24 +304,31 @@ const Admin = () => {
                       }`}
                       style={{ animationDelay: `${index * 0.02}s` }}
                     >
-                      <div className="flex items-center gap-3">
-                        <code className={`text-sm font-mono font-semibold ${
-                          isCodeExpired(code) ? 'text-destructive' : 'text-primary'
-                        }`}>
-                          {code.code}
-                        </code>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => copyToClipboard(code.code)}
-                          className="h-7 w-7 p-0"
-                        >
-                          {copiedCode === code.code ? (
-                            <Check className="h-3 w-3 text-success" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <code className={`text-sm font-mono font-semibold ${
+                            isCodeExpired(code) ? 'text-destructive' : 'text-primary'
+                          }`}>
+                            {code.code}
+                          </code>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(code.code)}
+                            className="h-6 w-6 p-0"
+                          >
+                            {copiedCode === code.code ? (
+                              <Check className="h-3 w-3 text-success" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+                        {code.user_email && (
+                          <span className="text-[10px] text-muted-foreground">
+                            👤 {code.user_email}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
