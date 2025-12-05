@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users as UsersIcon, Shield, UserCheck, UserX } from 'lucide-react';
+import { Users as UsersIcon, Shield, UserCheck, UserX, Calendar, Activity, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,11 +20,35 @@ interface User {
 const Users = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({ totalOperations: 0, codesUsed: 0 });
   const { toast } = useToast();
 
   useEffect(() => {
     loadUsers();
+    loadStats();
   }, []);
+
+  const loadStats = async () => {
+    try {
+      // Total operations
+      const { count: opCount } = await supabase
+        .from('operation_history')
+        .select('*', { count: 'exact', head: true });
+
+      // Used activation codes
+      const { count: codesCount } = await supabase
+        .from('activation_codes')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_used', true);
+
+      setStats({
+        totalOperations: opCount || 0,
+        codesUsed: codesCount || 0
+      });
+    } catch (error) {
+      console.error('Erro ao carregar stats:', error);
+    }
+  };
 
   const loadUsers = async () => {
     setLoading(true);
@@ -89,11 +113,11 @@ const Users = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="metric-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground uppercase">Total</p>
+              <p className="text-xs text-muted-foreground uppercase">Total Usuários</p>
               <p className="text-2xl font-bold">{users.length}</p>
             </div>
             <UsersIcon className="w-5 h-5 text-primary" />
@@ -106,6 +130,24 @@ const Users = () => {
               <p className="text-2xl font-bold text-success">{activeUsers}</p>
             </div>
             <UserCheck className="w-5 h-5 text-success" />
+          </CardContent>
+        </Card>
+        <Card className="metric-card">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase">Códigos Usados</p>
+              <p className="text-2xl font-bold text-secondary">{stats.codesUsed}</p>
+            </div>
+            <Activity className="w-5 h-5 text-secondary" />
+          </CardContent>
+        </Card>
+        <Card className="metric-card">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase">Operações</p>
+              <p className="text-2xl font-bold text-accent">{stats.totalOperations}</p>
+            </div>
+            <TrendingUp className="w-5 h-5 text-accent" />
           </CardContent>
         </Card>
       </div>
@@ -145,6 +187,12 @@ const Users = () => {
                     <div>
                       <p className="text-sm font-medium">{user.full_name || 'Sem nome'}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
+                      {user.last_login && (
+                        <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1 mt-0.5">
+                          <Calendar className="w-3 h-3" />
+                          Último login: {new Date(user.last_login).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
