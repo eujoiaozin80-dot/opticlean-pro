@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_history: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          operation_name: string
+          operation_type: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          operation_name: string
+          operation_type: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          operation_name?: string
+          operation_type?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
