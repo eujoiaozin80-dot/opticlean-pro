@@ -19,28 +19,34 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          expires_at: string | null
           id: string
           is_used: boolean
           used_at: string | null
           used_by: string | null
+          validity_days: number | null
         }
         Insert: {
           code: string
           created_at?: string
           created_by?: string | null
+          expires_at?: string | null
           id?: string
           is_used?: boolean
           used_at?: string | null
           used_by?: string | null
+          validity_days?: number | null
         }
         Update: {
           code?: string
           created_at?: string
           created_by?: string | null
+          expires_at?: string | null
           id?: string
           is_used?: boolean
           used_at?: string | null
           used_by?: string | null
+          validity_days?: number | null
         }
         Relationships: []
       }

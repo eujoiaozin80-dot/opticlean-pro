@@ -41,7 +41,22 @@ const Index = () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (error) throw error;
+        if (error) {
+          // Se o refresh token for inválido, fazer logout e limpar sessão
+          if ((error as any)?.code === 'refresh_token_not_found' || 
+              error.message?.includes('Refresh Token')) {
+            console.log('Sessão expirada, redirecionando para login...');
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setIsAuthenticated(false);
+              setUserId('');
+              setUserRole('user');
+              setLoading(false);
+            }
+            return;
+          }
+          throw error;
+        }
         if (!isMounted) return;
 
         if (session?.user) {
@@ -54,6 +69,8 @@ const Index = () => {
       } catch (error) {
         console.error('Erro ao verificar sessão:', error);
         if (isMounted) {
+          // Em caso de erro, garantir que loading seja false e mostrar login
+          setIsAuthenticated(false);
           setLoading(false);
         }
       }
