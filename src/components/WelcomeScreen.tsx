@@ -1,111 +1,193 @@
-import { useEffect, useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
-import logoOpticlean from '@/assets/logo-opticlean.png';
+import { useEffect, useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import logoOpticlean from "@/assets/logo-opticlean.png";
 
 interface WelcomeScreenProps {
   userName: string;
   onComplete: () => void;
 }
 
-const WelcomeScreen = ({ userName, onComplete }: WelcomeScreenProps) => {
-  const [stage, setStage] = useState<'welcome' | 'loading' | 'ready'>('welcome');
+const steps = [
+  "Inicializando módulos...",
+  "Verificando integridade do sistema...",
+  "Otimizando ambiente...",
+  "Carregando interface...",
+  "Finalizando...",
+];
+
+export default function WelcomeScreen({ userName, onComplete }: WelcomeScreenProps) {
+  const totalLoadTime = 10000; // 10 segundos
+  const stepDuration = totalLoadTime / steps.length;
+
+  const [progress, setProgress] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [stage, setStage] = useState<"welcome" | "loading" | "done">("welcome");
 
   useEffect(() => {
-    // Stage 1: Show welcome message
-    const timer1 = setTimeout(() => setStage('loading'), 1500);
-    
-    // Stage 2: Show loading
-    const timer2 = setTimeout(() => setStage('ready'), 3000);
-    
-    // Stage 3: Complete and transition
-    const timer3 = setTimeout(() => onComplete(), 3800);
+    const timers: NodeJS.Timeout[] = [];
 
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
+    // 1) Troca do welcome → loading
+    timers.push(
+      setTimeout(() => setStage("loading"), 1800)
+    );
+
+    // 2) Barra de progresso
+    timers.push(
+      setTimeout(() => {
+        let start = 0;
+        const interval = setInterval(() => {
+          start += 1;
+          setProgress(start);
+          if (start >= 100) clearInterval(interval);
+        }, totalLoadTime / 100);
+
+        timers.push(interval);
+      }, 2000)
+    );
+
+    // 3) troca das etapas
+    steps.forEach((_, idx) => {
+      timers.push(
+        setTimeout(() => setStepIndex(idx), 2000 + idx * stepDuration)
+      );
+    });
+
+    // 4) Finalização
+    timers.push(
+      setTimeout(() => {
+        setStage("done");
+        setTimeout(onComplete, 1000);
+      }, totalLoadTime + 2500)
+    );
+
+    return () => timers.forEach((t) => clearTimeout(t));
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-grid opacity-30" />
-      <div className="gradient-rgb-animated absolute inset-0 opacity-50" />
-      
-      {/* Floating Orbs */}
-      <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-[120px] animate-pulse" />
-      <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-secondary/10 blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-      
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background overflow-hidden select-none">
+
+      {/* Dynamic Light Background */}
+      <motion.div
+        className="absolute inset-0 gradient-rgb-animated opacity-60"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.5 }}
+        transition={{ duration: 1 }}
+      />
+
+      {/* Orbs */}
+      <motion.div
+        className="absolute top-1/3 left-1/4 w-[420px] h-[420px] rounded-full bg-primary/15 blur-[130px]"
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.8 }}
+      />
+      <motion.div
+        className="absolute bottom-1/3 right-1/4 w-[360px] h-[360px] rounded-full bg-secondary/20 blur-[110px]"
+        initial={{ opacity: 0, scale: 0.7 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 2 }}
+      />
+
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Logo with glow */}
-        <div className="relative mb-8 animate-scale-in">
-          <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full scale-150 animate-pulse" />
-          <img 
-            src={logoOpticlean} 
-            alt="OptiClean Pro" 
-            className="w-28 h-28 relative z-10 drop-shadow-2xl"
+
+        {/* Logo */}
+        <motion.div
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.9, ease: "anticipate" }}
+          className="relative mb-8"
+        >
+          <div className="absolute inset-0 bg-primary/25 blur-3xl rounded-full scale-150 animate-pulse" />
+          <img
+            src={logoOpticlean}
+            className="w-28 h-28 drop-shadow-[0_0_25px_rgba(0,0,0,0.45)]"
+            alt=""
+            draggable={false}
           />
-          <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-primary animate-pulse" />
-        </div>
+          <Sparkles className="absolute -top-2 -right-2 text-primary w-6 h-6 animate-pulse" />
+        </motion.div>
 
-        {/* Welcome Text */}
-        <div className={`transition-all duration-700 ${stage === 'welcome' ? 'opacity-100 translate-y-0' : 'opacity-100 -translate-y-2'}`}>
-          <h1 className="text-4xl md:text-5xl font-bold text-gradient text-center mb-4 animate-fade-in">
-            Bem-vindo
-          </h1>
-          
-          <p className={`text-2xl md:text-3xl font-semibold text-foreground/90 text-center transition-all duration-500 delay-300 ${stage === 'welcome' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-            {userName || 'Usuário'}
-          </p>
-        </div>
-
-        {/* Loading Spinner */}
-        <div className={`mt-12 flex flex-col items-center transition-all duration-500 ${stage === 'loading' || stage === 'ready' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          {stage !== 'ready' ? (
-            <>
-              <div className="relative">
-                <div className="w-16 h-16 border-4 border-primary/20 rounded-full" />
-                <div className="absolute inset-0 w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-              <p className="mt-6 text-muted-foreground text-sm animate-pulse">
-                Carregando seu ambiente...
+        {/* Welcome */}
+        <AnimatePresence mode="wait">
+          {stage === "welcome" && (
+            <motion.div
+              key="welcome"
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.6 }}
+              className="text-center"
+            >
+              <h1 className="text-5xl font-bold text-gradient">Bem-vindo</h1>
+              <p className="mt-4 text-2xl text-foreground/80 font-semibold">
+                {userName || "Usuário"}
               </p>
-            </>
-          ) : (
-            <div className="flex flex-col items-center animate-scale-in">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <svg 
-                  className="w-8 h-8 text-primary animate-scale-in" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={3} 
-                    d="M5 13l4 4L19 7" 
-                  />
-                </svg>
-              </div>
-              <p className="mt-6 text-primary text-sm font-medium">
-                Pronto!
-              </p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
+
+        {/* Loading */}
+        <AnimatePresence mode="wait">
+          {stage === "loading" && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="w-[330px] mt-12 flex flex-col items-center"
+            >
+              {/* Step text */}
+              <motion.p
+                key={stepIndex}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="text-sm text-muted-foreground"
+              >
+                {steps[stepIndex]}
+              </motion.p>
+
+              {/* Progress bar */}
+              <div className="w-full h-2 bg-muted/40 rounded-full mt-4 overflow-hidden">
+                <motion.div
+                  className="h-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.2, ease: "linear" }}
+                />
+              </div>
+
+              <p className="mt-4 text-xs text-muted-foreground/70">{progress}%</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Done */}
+        {stage === "done" && (
+          <motion.p
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="mt-12 text-primary font-semibold text-lg"
+          >
+            Concluido!
+          </motion.p>
+        )}
       </div>
 
-      {/* Bottom branding */}
-      <div className="absolute bottom-8 text-center">
-        <p className="text-xs text-muted-foreground/60">
-          OptiClean Pro v1.1.0
-        </p>
-      </div>
+      {/* Footer */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+        className="absolute bottom-8 text-xs text-muted-foreground/60"
+      >
+        OptiClean Pro v1
+      </motion.div>
     </div>
   );
-};
-
-export default WelcomeScreen;
+}

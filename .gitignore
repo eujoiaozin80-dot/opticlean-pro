@@ -1,4 +1,6 @@
+############################
 # Logs
+############################
 logs
 *.log
 npm-debug.log*
@@ -7,33 +9,43 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+############################
+# Node / Build Artifacts
+############################
+node_modules/
+dist/
+dist-ssr/
+build/
+out/
+release/
+win-unpacked/
 *.local
 
-# Editor directories and files
+############################
+# Electron Builder Outputs
+############################
+*.exe
+*.dmg
+*.AppImage
+*.asar
+*.zip
+*.7z
+*.tar
+
+############################
+# Editor / IDE
+############################
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-node_modules/
-dist/
-build/
-win-unpacked/
-release/
-out/
 
-*.zip
-*.exe
-*.asar
-*.dmg
-*.7z
-*.tar
-*.AppImage
-
+############################
+# OS / Misc
+############################
+.DS_Store
+Thumbs.db
