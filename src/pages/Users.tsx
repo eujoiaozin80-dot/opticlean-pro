@@ -21,7 +21,7 @@ interface UsersProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Users = ({ className, ...props }: UsersProps = {}) => {
+const Users = ({ className, ...props }: UsersProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ totalOperations: 0, codesUsed: 0 });

@@ -30,7 +30,7 @@ interface DashboardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Dashboard = ({ className, ...props }: DashboardProps = {}) => {
+const Dashboard = ({ className, ...props }: DashboardProps) => {
   const { 
     cpu, 
     memory, 

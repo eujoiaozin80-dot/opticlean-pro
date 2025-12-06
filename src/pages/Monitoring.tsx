@@ -37,7 +37,7 @@ interface MonitoringProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Monitoring = ({ className, ...props }: MonitoringProps = {}) => {
+const Monitoring = ({ className, ...props }: MonitoringProps) => {
   const { toast } = useToast();
   const { 
     cpu, 

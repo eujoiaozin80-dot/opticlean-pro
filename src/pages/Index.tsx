@@ -10,7 +10,7 @@ interface IndexProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Index = ({ className, ...props }: IndexProps = {}) => {
+const Index = ({ className, ...props }: IndexProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('user');

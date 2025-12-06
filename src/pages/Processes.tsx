@@ -25,7 +25,7 @@ interface ProcessesProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Processes = ({ className, ...props }: ProcessesProps = {}) => {
+const Processes = ({ className, ...props }: ProcessesProps) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [filteredProcesses, setFilteredProcesses] = useState<Process[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
