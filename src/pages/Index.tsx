@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import ParticlesBackground from '@/components/ParticlesBackground';
 import Login from '@/components/Login';
 import Sidebar from '@/components/Sidebar';
+import WelcomeScreen from '@/components/WelcomeScreen';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('user');
+  const [userName, setUserName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,29 +121,37 @@ const Index = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name, email')
         .eq('id', id)
         .maybeSingle();
 
       if (error && (error as any).code !== 'PGRST116') throw error;
 
       setUserRole(data?.role ?? 'user');
+      setUserName(data?.full_name || data?.email?.split('@')[0] || 'Usuário');
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
       // Se não conseguir carregar o perfil, mantém acesso como usuário padrão
       setUserRole('user');
+      setUserName('Usuário');
       setIsAuthenticated(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = (id: string, role: string) => {
+  const handleLogin = (id: string, role: string, name?: string) => {
     setUserId(id);
     setUserRole(role);
-    setIsAuthenticated(true);
+    setUserName(name || 'Usuário');
+    setShowWelcome(true);
   };
+
+  const handleWelcomeComplete = useCallback(() => {
+    setShowWelcome(false);
+    setIsAuthenticated(true);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -159,6 +170,13 @@ const Index = () => {
   }
 
   const isFounder = userRole === 'founder';
+
+  // Show welcome screen after login
+  if (showWelcome) {
+    return (
+      <WelcomeScreen userName={userName} onComplete={handleWelcomeComplete} />
+    );
+  }
 
   if (!isAuthenticated) {
     return (
