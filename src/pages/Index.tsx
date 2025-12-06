@@ -16,83 +16,52 @@ const Index = () => {
 
   useEffect(() => {
     let isMounted = true;
-    let hasInitialized = false;
 
-    // Listener de autenticação deve ser configurado ANTES de verificar a sessão
+    // Listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
 
         console.log('Auth event:', event, 'Session:', !!session);
 
-        // Se acabou de fazer login, marcar como inicializado para ignorar checkSession
-        if (event === 'SIGNED_IN' && session?.user) {
-          hasInitialized = true;
-          setUserId(session.user.id);
-          setIsAuthenticated(true);
-          setLoading(false);
-
-          // Buscar perfil em um tick separado para evitar deadlocks com auth
-          setTimeout(() => {
-            if (!isMounted) return;
-            loadUserProfile(session.user!.id);
-          }, 0);
-          return;
-        }
+        // Ignorar eventos se estamos mostrando welcome screen (login manual em andamento)
+        if (showWelcome) return;
 
         if (event === 'SIGNED_OUT') {
           setIsAuthenticated(false);
           setUserId('');
           setUserRole('user');
+          setUserName('');
           setLoading(false);
           return;
         }
 
-        if (event === 'TOKEN_REFRESHED' && session?.user) {
+        // Para sessões existentes (não login manual)
+        if ((event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
           setUserId(session.user.id);
           setIsAuthenticated(true);
-          return;
-        }
-
-        // Para INITIAL_SESSION
-        if (event === 'INITIAL_SESSION') {
-          if (session?.user) {
-            setUserId(session.user.id);
-            setIsAuthenticated(true);
-            setTimeout(() => {
-              if (!isMounted) return;
-              loadUserProfile(session.user!.id);
-            }, 0);
-          } else {
-            setLoading(false);
-          }
+          setTimeout(() => {
+            if (!isMounted) return;
+            loadUserProfile(session.user!.id);
+          }, 0);
+        } else if (event === 'INITIAL_SESSION' && !session) {
+          setLoading(false);
         }
       }
     );
 
+    // Verificar sessão existente
     const checkSession = async () => {
-      // Aguardar um pouco para o listener processar primeiro
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (hasInitialized || !isMounted) return;
-
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
-          // Se o refresh token for inválido, apenas limpar - não fazer signOut se já logou
-          if ((error as any)?.code === 'refresh_token_not_found' || 
-              error.message?.includes('Refresh Token')) {
-            console.log('Token antigo inválido, limpando...');
-            if (isMounted && !hasInitialized) {
-              setLoading(false);
-            }
-            return;
-          }
-          throw error;
+          console.log('Erro na sessão:', error.message);
+          if (isMounted) setLoading(false);
+          return;
         }
 
-        if (!isMounted || hasInitialized) return;
+        if (!isMounted) return;
 
         if (session?.user) {
           setUserId(session.user.id);
@@ -103,9 +72,7 @@ const Index = () => {
         }
       } catch (error) {
         console.error('Erro ao verificar sessão:', error);
-        if (isMounted && !hasInitialized) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -115,7 +82,7 @@ const Index = () => {
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [showWelcome]);
 
   const loadUserProfile = async (id: string) => {
     try {
