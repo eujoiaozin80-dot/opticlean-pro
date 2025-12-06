@@ -23,7 +23,7 @@ interface StartupProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Startup = ({ className, ...props }: StartupProps = {}) => {
+const Startup = ({ className, ...props }: StartupProps) => {
   const [programs, setPrograms] = useState<StartupProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');

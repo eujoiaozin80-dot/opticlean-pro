@@ -18,7 +18,7 @@ interface SettingsProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Settings = ({ className, ...props }: SettingsProps = {}) => {
+const Settings = ({ className, ...props }: SettingsProps) => {
   const { userId } = useOutletContext<OutletContext>();
   const { theme, toggleTheme } = useTheme();
   const { operations, loading: historyLoading } = useOperationHistory(userId);

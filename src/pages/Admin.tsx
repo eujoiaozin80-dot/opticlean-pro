@@ -27,7 +27,7 @@ interface AdminProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-const Admin = ({ className, ...props }: AdminProps = {}) => {
+const Admin = ({ className, ...props }: AdminProps) => {
   const { userId } = useOutletContext<OutletContext>();
   const [activationCodes, setActivationCodes] = useState<ActivationCode[]>([]);
   const [loading, setLoading] = useState(false);
