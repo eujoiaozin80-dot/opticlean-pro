@@ -28,19 +28,23 @@ const activationCodeSchema = z
   .min(1, { message: "Código de ativação é obrigatório" });
 
 const FOUNDER_EMAIL = "brunoquirin3@gmail.com";
-const randBetween = (min, max) => Math.floor(Math.random() * (max - min)) + min;
+const randBetween = (min: number, max: number): number => Math.floor(Math.random() * (max - min)) + min;
+
+interface LoginProps {
+  onLogin: (id: string, role: string, name?: string) => void;
+}
 
 /* --- SOUND ENGINE --- */
-const playSound = (url, volume = 0.4) => {
+const playSound = (url: string, volume = 0.4): void => {
   const audio = new Audio(url);
   audio.volume = volume;
   audio.play();
 };
 
 /* PARTICLE CANVAS (UPGRADED) */
-function ParticleCanvas({ intensity = 60 }) {
-  const ref = useRef(null);
-  const raf = useRef(null);
+function ParticleCanvas({ intensity = 60 }: { intensity?: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const raf = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = ref.current;
@@ -124,16 +128,16 @@ function ParticleCanvas({ intensity = 60 }) {
 }
 
 /* TYPING AI PLACEHOLDER */
-function useAIMockTyping(list, delay = 1500) {
+function useAIMockTyping(list: string[], delay = 1500): string {
   const [index, setIndex] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setIndex((i) => (i + 1) % list.length), delay);
     return () => clearInterval(id);
-  }, []);
+  }, [list.length, delay]);
   return list[index];
 }
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [activationCode, setActivationCode] = useState("");
@@ -149,13 +153,13 @@ export default function Login({ onLogin }) {
 
   /* PARALLAX */
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    const move = (e) => {
+    const move = (e: MouseEvent) => {
       const r = el.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width - 0.5;
       const py = (e.clientY - r.top) / r.height - 0.5;
@@ -206,7 +210,7 @@ export default function Login({ onLogin }) {
   ]);
 
   /* HANDLE SUBMIT */
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
 
@@ -233,12 +237,13 @@ export default function Login({ onLogin }) {
           .eq("id", authData.user.id)
           .single();
 
-        onLogin(authData.user.id, profile.role, profile.full_name);
+        onLogin(authData.user.id, profile?.role || 'user', profile?.full_name || undefined);
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Falha ao autenticar.";
       toast({
         title: "Erro",
-        description: err?.message || "Falha ao autenticar.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
