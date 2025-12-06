@@ -14,7 +14,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-const Settings = () => {
+interface SettingsProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const Settings = ({ className, ...props }: SettingsProps = {}) => {
   const { userId } = useOutletContext<OutletContext>();
   const { theme, toggleTheme } = useTheme();
   const { operations, loading: historyLoading } = useOperationHistory(userId);
@@ -70,7 +74,7 @@ const Settings = () => {
   };
   
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground mb-1">
