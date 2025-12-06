@@ -26,7 +26,11 @@ import { useSystemStats } from '@/hooks/useSystemStats';
 import { useSystemActions } from '@/hooks/useSystemActions';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const Dashboard = () => {
+interface DashboardProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const Dashboard = ({ className, ...props }: DashboardProps = {}) => {
   const { 
     cpu, 
     memory, 
@@ -88,7 +92,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

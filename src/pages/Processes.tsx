@@ -21,7 +21,11 @@ const isElectron = (): boolean => {
          typeof window.electronAPI.getProcesses === 'function';
 };
 
-const Processes = () => {
+interface ProcessesProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const Processes = ({ className, ...props }: ProcessesProps = {}) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [filteredProcesses, setFilteredProcesses] = useState<Process[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -111,7 +115,7 @@ const Processes = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

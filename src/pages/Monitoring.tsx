@@ -33,7 +33,11 @@ const isElectron = (): boolean => {
          window.electronAPI !== null;
 };
 
-const Monitoring = () => {
+interface MonitoringProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const Monitoring = ({ className, ...props }: MonitoringProps = {}) => {
   const { toast } = useToast();
   const { 
     cpu, 
@@ -112,7 +116,7 @@ const Monitoring = () => {
 
   if (!isElectron()) {
     return (
-      <div className="space-y-6 animate-fade-up">
+      <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
         <div>
           <h1 className="text-2xl font-bold text-foreground mb-1">Monitoramento</h1>
           <p className="text-muted-foreground text-sm">Sistema de monitoramento em tempo real</p>
@@ -127,7 +131,7 @@ const Monitoring = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

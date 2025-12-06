@@ -19,7 +19,11 @@ const isElectron = (): boolean => {
          typeof window.electronAPI.getStartupPrograms === 'function';
 };
 
-const Startup = () => {
+interface StartupProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const Startup = ({ className, ...props }: StartupProps = {}) => {
   const [programs, setPrograms] = useState<StartupProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -66,7 +70,7 @@ const Startup = () => {
   const disabledCount = programs.length - enabledCount;
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

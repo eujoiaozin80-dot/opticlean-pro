@@ -17,7 +17,11 @@ interface User {
   created_at: string;
 }
 
-const Users = () => {
+interface UsersProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const Users = ({ className, ...props }: UsersProps = {}) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ totalOperations: 0, codesUsed: 0 });
@@ -99,7 +103,7 @@ const Users = () => {
   const activeUsers = users.filter(u => u.is_active).length;
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

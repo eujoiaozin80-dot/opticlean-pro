@@ -23,7 +23,11 @@ interface ActivationCode {
   user_email?: string;
 }
 
-const Admin = () => {
+interface AdminProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+}
+
+const Admin = ({ className, ...props }: AdminProps = {}) => {
   const { userId } = useOutletContext<OutletContext>();
   const [activationCodes, setActivationCodes] = useState<ActivationCode[]>([]);
   const [loading, setLoading] = useState(false);
@@ -159,7 +163,7 @@ const Admin = () => {
   const usedCodes = activationCodes.filter(c => c.is_used).length;
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
