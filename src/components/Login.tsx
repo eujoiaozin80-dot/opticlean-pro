@@ -10,7 +10,7 @@ import { z } from 'zod';
 import logoOpticlean from '@/assets/logo-opticlean.png';
 
 interface LoginProps {
-  onLogin: (userId: string, userRole: string) => void;
+  onLogin: (userId: string, userRole: string, userName?: string) => void;
 }
 
 const emailSchema = z.string().trim().email({ message: "E-mail inválido" });
@@ -52,18 +52,15 @@ const Login = ({ onLogin }: LoginProps) => {
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name, email')
           .eq('id', authData.user.id)
           .single();
 
         if (profileError) throw profileError;
 
-        toast({
-          title: "Bem-vindo de volta",
-          description: "Login realizado com sucesso",
-        });
+        const displayName = profile.full_name || profile.email?.split('@')[0] || 'Usuário';
 
-        onLogin(authData.user.id, profile.role);
+        onLogin(authData.user.id, profile.role, displayName);
       } else {
         if (!isFounder) {
           activationCodeSchema.parse(activationCode);
@@ -120,16 +117,13 @@ const Login = ({ onLogin }: LoginProps) => {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name, email')
           .eq('id', authData.user.id)
           .single();
 
-        toast({
-          title: "Conta criada",
-          description: "Bem-vindo ao OptiClean Pro",
-        });
+        const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'Usuário';
 
-        onLogin(authData.user.id, profile?.role || 'user');
+        onLogin(authData.user.id, profile?.role || 'user', displayName);
       }
     } catch (error: any) {
       console.error('Erro:', error);
