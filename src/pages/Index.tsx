@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Outlet } from 'react-router-dom';
 import ParticlesBackground from '@/components/ParticlesBackground';
 import Login from '@/components/Login';
 import Sidebar from '@/components/Sidebar';
@@ -17,19 +17,46 @@ const Index = ({ className, ...props }: IndexProps) => {
   const [userName, setUserName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
+  
+  // Usar ref para evitar re-execuções do useEffect
+  const showWelcomeRef = useRef(false);
+  const hasInitialized = useRef(false);
+
+  const loadUserProfile = useCallback(async (id: string): Promise<{ role: string; name: string }> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role, full_name, email')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error && (error as any).code !== 'PGRST116') throw error;
+
+      const role = data?.role ?? 'user';
+      const name = data?.full_name || data?.email?.split('@')[0] || 'Usuário';
+      
+      return { role, name };
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+      return { role: 'user', name: 'Usuário' };
+    }
+  }, []);
 
   useEffect(() => {
+    // Prevenir múltiplas inicializações
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     let isMounted = true;
 
-    // Listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
+        
+        // Ignorar se welcome screen está ativa
+        if (showWelcomeRef.current) return;
 
         console.log('Auth event:', event, 'Session:', !!session);
-
-        // Ignorar eventos se estamos mostrando welcome screen (login manual em andamento)
-        if (showWelcome) return;
 
         if (event === 'SIGNED_OUT') {
           setIsAuthenticated(false);
@@ -40,13 +67,18 @@ const Index = ({ className, ...props }: IndexProps) => {
           return;
         }
 
-        // Para sessões existentes (não login manual)
         if ((event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
           setUserId(session.user.id);
-          setIsAuthenticated(true);
-          setTimeout(() => {
+          
+          setTimeout(async () => {
             if (!isMounted) return;
-            loadUserProfile(session.user!.id);
+            const { role, name } = await loadUserProfile(session.user!.id);
+            if (isMounted) {
+              setUserRole(role);
+              setUserName(name);
+              setIsAuthenticated(true);
+              setLoading(false);
+            }
           }, 0);
         } else if (event === 'INITIAL_SESSION' && !session) {
           setLoading(false);
@@ -69,8 +101,13 @@ const Index = ({ className, ...props }: IndexProps) => {
 
         if (session?.user) {
           setUserId(session.user.id);
-          setIsAuthenticated(true);
-          await loadUserProfile(session.user.id);
+          const { role, name } = await loadUserProfile(session.user.id);
+          if (isMounted) {
+            setUserRole(role);
+            setUserName(name);
+            setIsAuthenticated(true);
+            setLoading(false);
+          }
         } else {
           setLoading(false);
         }
@@ -86,84 +123,63 @@ const Index = ({ className, ...props }: IndexProps) => {
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [showWelcome]);
+  }, [loadUserProfile]);
 
-  const loadUserProfile = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role, full_name, email')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (error && (error as any).code !== 'PGRST116') throw error;
-
-      setUserRole(data?.role ?? 'user');
-      setUserName(data?.full_name || data?.email?.split('@')[0] || 'Usuário');
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
-      // Se não conseguir carregar o perfil, mantém acesso como usuário padrão
-      setUserRole('user');
-      setUserName('Usuário');
-      setIsAuthenticated(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = (id: string, role: string, name?: string) => {
+  const handleLogin = useCallback((id: string, role: string, name?: string) => {
+    showWelcomeRef.current = true;
     setUserId(id);
     setUserRole(role);
     setUserName(name || 'Usuário');
     setShowWelcome(true);
-  };
-
-  const handleWelcomeComplete = useCallback(() => {
-    setShowWelcome(false);
-    setIsAuthenticated(true);
   }, []);
 
-  const handleLogout = async () => {
+  const handleWelcomeComplete = useCallback(() => {
+    showWelcomeRef.current = false;
+    setShowWelcome(false);
+    setIsAuthenticated(true);
+    setLoading(false);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
     setUserId('');
     setUserRole('user');
-  };
+    setUserName('');
+  }, []);
 
+  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-background relative flex items-center justify-center">
+      <div className={`min-h-screen bg-background relative flex items-center justify-center ${className || ''}`} {...props}>
         <ParticlesBackground />
         <div className="text-primary text-xl">Carregando...</div>
       </div>
     );
   }
 
-  const isFounder = userRole === 'founder';
-
-  // Show welcome screen after login
+  // Welcome screen after login
   if (showWelcome) {
-    return (
-      <WelcomeScreen userName={userName} onComplete={handleWelcomeComplete} />
-    );
+    return <WelcomeScreen userName={userName} onComplete={handleWelcomeComplete} />;
   }
 
+  // Login screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background relative">
+      <div className={`min-h-screen bg-background relative ${className || ''}`} {...props}>
         <ParticlesBackground />
         <Login onLogin={handleLogin} />
       </div>
     );
   }
 
+  // Main app
+  const isFounder = userRole === 'founder';
+
   return (
-    <div className="min-h-screen bg-background relative flex">
+    <div className={`min-h-screen bg-background relative flex ${className || ''}`} {...props}>
       <ParticlesBackground />
-      
       <Sidebar userRole={userRole} onLogout={handleLogout} />
-      
       <main className="flex-1 p-8 overflow-y-auto">
         <Outlet context={{ userId, userRole, isFounder }} />
       </main>
