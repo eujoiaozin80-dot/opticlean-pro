@@ -28,9 +28,15 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const isElectron = (): boolean => {
-  return typeof window !== 'undefined' && 
-         typeof window.electronAPI !== 'undefined' &&
-         window.electronAPI !== null;
+  try {
+    return typeof window !== 'undefined' && 
+           typeof window.electronAPI !== 'undefined' &&
+           window.electronAPI !== null &&
+           typeof (window.electronAPI as any).onSystemStats === 'function';
+  } catch (error) {
+    console.error('Erro ao verificar ambiente Electron:', error);
+    return false;
+  }
 };
 
 interface MonitoringProps extends React.HTMLAttributes<HTMLDivElement> {
