@@ -15,10 +15,15 @@ interface Process {
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 const isElectron = (): boolean => {
-  return typeof window !== 'undefined' && 
-         typeof window.electronAPI !== 'undefined' &&
-         window.electronAPI !== null &&
-         typeof window.electronAPI.getProcesses === 'function';
+  try {
+    return typeof window !== 'undefined' && 
+           typeof window.electronAPI !== 'undefined' &&
+           window.electronAPI !== null &&
+           typeof window.electronAPI.getProcesses === 'function';
+  } catch (error) {
+    console.error('Erro ao verificar ambiente Electron:', error);
+    return false;
+  }
 };
 
 interface ProcessesProps extends React.HTMLAttributes<HTMLDivElement> {

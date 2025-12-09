@@ -3,10 +3,15 @@ import { useToast } from '@/hooks/use-toast';
 
 // Verificar se está rodando no Electron com APIs disponíveis
 const isElectron = (): boolean => {
-  return typeof window !== 'undefined' && 
-         typeof window.electronAPI !== 'undefined' &&
-         window.electronAPI !== null &&
-         typeof window.electronAPI.cleanSystem === 'function';
+  try {
+    return typeof window !== 'undefined' && 
+           typeof window.electronAPI !== 'undefined' &&
+           window.electronAPI !== null &&
+           typeof window.electronAPI.cleanSystem === 'function';
+  } catch (error) {
+    console.error('Erro ao verificar ambiente Electron:', error);
+    return false;
+  }
 };
 
 export const useSystemActions = () => {

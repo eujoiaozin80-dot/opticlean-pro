@@ -31,24 +31,61 @@ interface DashboardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Dashboard = ({ className, ...props }: DashboardProps) => {
+  // Wrap hook calls in try-catch para evitar crashes
+  let systemStats;
+  let systemActions;
+  let hookError = false;
+
+  try {
+    systemStats = useSystemStats();
+    systemActions = useSystemActions();
+  } catch (error) {
+    console.error('Erro ao inicializar hooks:', error);
+    hookError = true;
+  }
+
   const { 
-    cpu, 
-    memory, 
-    disk, 
-    network,
-    temperature,
-    timestamp,
-    isLoading, 
-    connectionStatus, 
-    isElectron: isElectronStats,
-    formatBytes,
-    formatSpeed,
-    cpuHistory,
-    memoryHistory,
-    alerts,
-    hasActiveAlerts
-  } = useSystemStats();
-  const { cleanSystem, optimizeSystem, analyzeSystem, isProcessing, isElectron } = useSystemActions();
+    cpu = { usageTotal: 0, usagePerCore: [], speed: 0 }, 
+    memory = { total: 0, used: 0, free: 0, percent: 0 }, 
+    disk = { total: 0, used: 0, free: 0 }, 
+    network = { rx: 0, tx: 0, interface: 'N/A' },
+    temperature = { cpu: null },
+    timestamp = new Date().toISOString(),
+    isLoading = false, 
+    connectionStatus = 'disconnected', 
+    isElectron: isElectronStats = false,
+    formatBytes = (gb: number) => `${gb} GB`,
+    formatSpeed = (mhz: number) => `${mhz} MHz`,
+    cpuHistory = [],
+    memoryHistory = [],
+    alerts = [],
+    hasActiveAlerts = false
+  } = systemStats || {};
+
+  const { 
+    cleanSystem = () => {}, 
+    optimizeSystem = () => {}, 
+    analyzeSystem = () => {}, 
+    isProcessing = false, 
+    isElectron = false 
+  } = systemActions || {};
+
+  // Se hooks falharam, mostrar mensagem
+  if (hookError) {
+    return (
+      <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Dashboard</h1>
+          <p className="text-muted-foreground text-sm">Monitore e otimize o sistema</p>
+        </div>
+        <Card className="p-12 text-center border-border/50">
+          <WifiOff className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+          <h2 className="text-xl font-semibold mb-2">Erro ao carregar</h2>
+          <p className="text-muted-foreground">Reinicie o aplicativo para tentar novamente.</p>
+        </Card>
+      </div>
+    );
+  }
 
   const getStatusColor = (percentage: number) => {
     if (percentage >= 90) return 'text-red-500';

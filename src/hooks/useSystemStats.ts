@@ -73,10 +73,15 @@ type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 // ============================================
 
 const isElectron = (): boolean => {
-  return typeof window !== 'undefined' && 
-         typeof window.electronAPI !== 'undefined' &&
-         window.electronAPI !== null &&
-         typeof (window.electronAPI as any).onSystemStats === 'function';
+  try {
+    return typeof window !== 'undefined' && 
+           typeof window.electronAPI !== 'undefined' &&
+           window.electronAPI !== null &&
+           typeof (window.electronAPI as any).onSystemStats === 'function';
+  } catch (error) {
+    console.error('Erro ao verificar ambiente Electron:', error);
+    return false;
+  }
 };
 
 // ============================================
@@ -117,9 +122,17 @@ export const useSystemStats = () => {
 
     setConnectionStatus('connecting');
 
-    // Listener para stats em tempo real
-    const api = window.electronAPI as any;
-    api.onSystemStats((data: SystemStats) => {
+    try {
+      // Listener para stats em tempo real
+      const api = window.electronAPI as any;
+      if (!api || typeof api.onSystemStats !== 'function') {
+        console.error('electronAPI.onSystemStats não disponível');
+        setConnectionStatus('error');
+        setIsLoading(false);
+        return;
+      }
+
+      api.onSystemStats((data: SystemStats) => {
       setStats(data);
       setConnectionStatus('connected');
       setLastUpdate(new Date());
@@ -181,12 +194,22 @@ export const useSystemStats = () => {
       }
     });
 
-    // Cleanup ao desmontar
-    return () => {
-      if (api?.removeSystemStatsListener) {
-        api.removeSystemStatsListener();
-      }
-    };
+      // Cleanup ao desmontar
+      return () => {
+        try {
+          if (api?.removeSystemStatsListener) {
+            api.removeSystemStatsListener();
+          }
+        } catch (error) {
+          console.error('Erro ao remover listener:', error);
+        }
+      };
+    } catch (error) {
+      console.error('Erro ao configurar listener de stats:', error);
+      setConnectionStatus('error');
+      setIsLoading(false);
+      return;
+    }
   }, []);
 
   // Limpar alertas
