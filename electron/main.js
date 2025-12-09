@@ -155,15 +155,20 @@ async function getProcessList() {
 
     const lines = stdout.trim().split('\n').slice(1);
 
-    return lines.slice(0, 20).map(line => {
+    return lines.slice(0, 50).map(line => {
       const p = line.split(',');
+      const memBytes = parseInt(p[3]) || 0;
+      const memPercent = Math.round((memBytes / os.totalmem()) * 100);
 
       return {
-        name: p[1],
+        name: p[1] || 'Unknown',
         pid: parseInt(p[2]) || 0,
-        memPercent: Math.round(((parseInt(p[3]) || 0) / os.totalmem()) * 100),
+        cpu: 0, // Windows não expõe CPU por processo via wmic facilmente
+        mem: memPercent,
+        cpuPercent: 0,
+        memPercent: memPercent,
       };
-    });
+    }).filter(p => p.name && p.name !== 'Unknown');
   } catch {
     return [];
   }
@@ -173,22 +178,34 @@ async function getCpuTemperature() {
   return null; // Windows não tem API nativa
 }
 
+// ================= REDE =================
+async function getNetworkStats() {
+  return {
+    rx: 0,
+    tx: 0,
+    interface: os.networkInterfaces() ? Object.keys(os.networkInterfaces())[0] || 'N/A' : 'N/A'
+  };
+}
+
 // ================= COLETOR =================
 async function collectSystemStats() {
-  const [cpu, memory, disk, processes, temp] = await Promise.all([
+  const [cpu, memory, disk, processes, temp, network] = await Promise.all([
     getCpuUsage(),
     getMemoryUsage(),
     getDiskUsage(),
     getProcessList(),
     getCpuTemperature(),
+    getNetworkStats(),
   ]);
 
   return {
     cpu,
     memory,
     disk,
+    network,
     processes,
     temperature: { cpu: temp },
+    timestamp: new Date().toISOString(),
   };
 }
 
@@ -221,7 +238,11 @@ ipcMain.handle('get-cpu-usage', async () => {
 
 ipcMain.handle('get-memory-usage', async () => getMemoryUsage());
 ipcMain.handle('get-disk-usage', async () => getDiskUsage());
-ipcMain.handle('get-processes', async () => getProcessList());
+ipcMain.handle('get-processes', async () => {
+  const processes = await getProcessList();
+  // Retornar formato esperado pelo frontend (cpu, mem)
+  return processes;
+});
 
 ipcMain.handle('kill-process', async (_, pid) => {
   try {
