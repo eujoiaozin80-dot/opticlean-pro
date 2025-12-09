@@ -27,6 +27,8 @@ interface SystemStatsData {
   processes: Array<{
     pid: number;
     name: string;
+    cpu: number;
+    mem: number;
     cpuPercent: number;
     memPercent: number;
   }>;
@@ -43,10 +45,55 @@ interface LicenseData {
   username: string;
 }
 
+interface CleanSystemResult {
+  success: boolean;
+  tempFiles: number;
+  freedSpace: number;
+  details?: string;
+}
+
+interface OptimizeSystemResult {
+  success: boolean;
+  processesOptimized: number;
+  memoryFreed: number;
+  actions?: string;
+}
+
+interface AnalyzeSystemResult {
+  success: boolean;
+  totalIssues: number;
+  issues: Array<{
+    type: string;
+    title: string;
+    description: string;
+    severity: 'high' | 'medium' | 'low';
+  }>;
+  cpuHealth: string;
+  memHealth: string;
+  diskHealth: string;
+  timestamp: string;
+}
+
+interface StartupProgram {
+  name: string;
+  path: string;
+  enabled: boolean;
+  location: string;
+}
+
+interface UpdateInfo {
+  name: string;
+  type: string;
+}
+
 export interface ElectronAPI {
   // Sistema de Monitoramento em Tempo Real
   onSystemStats: (callback: (data: SystemStatsData) => void) => void;
   removeSystemStatsListener: () => void;
+  
+  // Alertas do Sistema
+  onSystemAlert: (callback: (data: { type: string; value: number }) => void) => void;
+  removeSystemAlertListener: () => void;
   
   // Métricas do Sistema (Compatibilidade)
   getCpuUsage: () => Promise<{
@@ -58,62 +105,44 @@ export interface ElectronAPI {
     total: number;
     used: number;
     free: number;
-    percentage: number;
+    percent: number;
   }>;
   getDiskUsage: () => Promise<{
     total: number;
     used: number;
     free: number;
-    percentage: number;
   }>;
   getSystemInfo: () => Promise<{
     cpu: { brand: string; cores: number; speed: number };
     os: { platform: string; distro: string; release: string };
     memory: { total: number };
   } | null>;
-  getProcesses: () => Promise<Array<{ name: string; cpu: number; mem: number; pid: number }>>;
+  getProcesses: () => Promise<Array<{ name: string; cpu: number; mem: number; pid: number; cpuPercent: number; memPercent: number }>>;
   
-  // Funções do Sistema
-  cleanSystem: () => Promise<{
-    tempFiles: number;
-    cacheFiles: number;
-    freedSpace: number;
-    errors: string[];
-  }>;
-  optimizeSystem: () => Promise<{
-    ramFreed: number;
-    processesOptimized: number;
-    success: boolean;
-  }>;
-  analyzeSystem: () => Promise<{
-    totalIssues: number;
-    issues: Array<{
-      type: string;
-      title: string;
-      description: string;
-      suggestion: string;
-    }>;
-    cpuHealth: string;
-    memHealth: string;
-    diskHealth: string;
-  }>;
+  // Funções do Sistema - Limpeza, Otimização, Análise
+  cleanSystem: () => Promise<CleanSystemResult>;
+  optimizeSystem: () => Promise<OptimizeSystemResult>;
+  analyzeSystem: () => Promise<AnalyzeSystemResult>;
   killProcess: (pid: number) => Promise<{
     success: boolean;
     error?: string;
   }>;
-  getStartupPrograms: () => Promise<Array<{
-    name: string;
-    path: string;
-    enabled: boolean;
-  }>>;
+  getStartupPrograms: () => Promise<{
+    success: boolean;
+    programs: StartupProgram[];
+    total: number;
+  }>;
   checkUpdates: () => Promise<{
+    success: boolean;
     totalUpdates: number;
-    updates: Array<{
-      type: string;
-      name: string;
-      description: string;
-      available: boolean;
-    }>;
+    updates: UpdateInfo[];
+  }>;
+  
+  // Notificações Desktop
+  showNotification: (options: { title: string; body: string; type?: string }) => Promise<{
+    success: boolean;
+    reason?: string;
+    error?: string;
   }>;
   
   // Gerenciamento de Usuário e Licença
