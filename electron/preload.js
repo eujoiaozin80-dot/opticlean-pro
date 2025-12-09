@@ -44,6 +44,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveLicense: (data) => ipcRenderer.invoke('save-license', data),
   deleteUser: () => ipcRenderer.invoke('delete-user'),
   generateCode: () => ipcRenderer.invoke('generate-code'),
+  
+  // ============================================
+  // Notificações Desktop
+  // ============================================
+  showNotification: (options) => ipcRenderer.invoke('show-notification', options),
+  onSystemAlert: (callback) => {
+    ipcRenderer.on('system-alert', (event, data) => callback(data));
+  },
+  removeSystemAlertListener: () => {
+    ipcRenderer.removeAllListeners('system-alert');
+  },
 });
 
 console.log('[OptiClean Pro] APIs do Electron carregadas');

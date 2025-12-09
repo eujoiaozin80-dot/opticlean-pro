@@ -3,7 +3,7 @@
 // Código completo e corrigido
 // ================================
 
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -178,48 +178,7 @@ async function getCpuTemperature() {
   return null; // Windows não tem API nativa
 }
 
-// ================= REDE =================
-async function getNetworkStats() {
-  return {
-    rx: 0,
-    tx: 0,
-    interface: os.networkInterfaces() ? Object.keys(os.networkInterfaces())[0] || 'N/A' : 'N/A'
-  };
-}
-
-// ================= COLETOR =================
-async function collectSystemStats() {
-  const [cpu, memory, disk, processes, temp, network] = await Promise.all([
-    getCpuUsage(),
-    getMemoryUsage(),
-    getDiskUsage(),
-    getProcessList(),
-    getCpuTemperature(),
-    getNetworkStats(),
-  ]);
-
-  return {
-    cpu,
-    memory,
-    disk,
-    network,
-    processes,
-    temperature: { cpu: temp },
-    timestamp: new Date().toISOString(),
-  };
-}
-
-// ================= MONITORAMENTO =================
-function startSystemMonitor() {
-  if (monitorInterval) return;
-
-  monitorInterval = setInterval(async () => {
-    const stats = await collectSystemStats();
-    if (!mainWindow?.isDestroyed()) {
-      mainWindow.webContents.send('system-stats', stats);
-    }
-  }, 1000);
-}
+// ================= PLACEHOLDER - Funções de rede movidas para baixo =================
 
 function stopSystemMonitor() {
   clearInterval(monitorInterval);
@@ -252,6 +211,136 @@ ipcMain.handle('kill-process', async (_, pid) => {
     return { success: false, error: e.message };
   }
 });
+
+// ================= NOTIFICAÇÕES DESKTOP =================
+let notificationCooldown = {};
+
+ipcMain.handle('show-notification', async (_, { title, body, type }) => {
+  try {
+    // Verificar cooldown (30 segundos)
+    const now = Date.now();
+    const cooldownKey = `${type}-${title}`;
+    if (notificationCooldown[cooldownKey] && now - notificationCooldown[cooldownKey] < 30000) {
+      return { success: false, reason: 'cooldown' };
+    }
+    
+    notificationCooldown[cooldownKey] = now;
+    
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title: title || 'OptiClean Pro',
+        body: body || '',
+        icon: path.join(__dirname, '../public/favicon.ico'),
+        silent: false,
+      });
+      
+      notification.show();
+      return { success: true };
+    }
+    return { success: false, reason: 'not-supported' };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+// ================= REDE REAL =================
+let lastNetworkStats = null;
+
+async function getRealNetworkStats() {
+  try {
+    const { stdout } = await execPromise(
+      'netstat -e'
+    );
+    
+    const lines = stdout.trim().split('\n');
+    let rx = 0, tx = 0;
+    
+    for (const line of lines) {
+      if (line.includes('Bytes')) {
+        const parts = line.split(/\s+/).filter(Boolean);
+        if (parts.length >= 3) {
+          rx = parseInt(parts[1]) || 0;
+          tx = parseInt(parts[2]) || 0;
+        }
+      }
+    }
+    
+    const interfaces = os.networkInterfaces();
+    const interfaceName = Object.keys(interfaces).find(name => 
+      !name.toLowerCase().includes('loopback') && interfaces[name]?.some(i => !i.internal)
+    ) || Object.keys(interfaces)[0] || 'N/A';
+    
+    if (lastNetworkStats) {
+      const rxDiff = Math.max(0, rx - lastNetworkStats.rx);
+      const txDiff = Math.max(0, tx - lastNetworkStats.tx);
+      lastNetworkStats = { rx, tx };
+      
+      return {
+        rx: Math.round(rxDiff / 1024), // KB/s
+        tx: Math.round(txDiff / 1024),
+        interface: interfaceName
+      };
+    }
+    
+    lastNetworkStats = { rx, tx };
+    return { rx: 0, tx: 0, interface: interfaceName };
+  } catch {
+    return { rx: 0, tx: 0, interface: 'N/A' };
+  }
+}
+
+// Atualizar collectSystemStats para usar rede real
+async function collectSystemStatsWithNetwork() {
+  const [cpu, memory, disk, processes, temp, network] = await Promise.all([
+    getCpuUsage(),
+    getMemoryUsage(),
+    getDiskUsage(),
+    getProcessList(),
+    getCpuTemperature(),
+    getRealNetworkStats(),
+  ]);
+
+  // Verificar alertas e enviar notificações
+  if (cpu.usageTotal >= 90) {
+    mainWindow?.webContents.send('system-alert', { type: 'cpu', value: cpu.usageTotal });
+    ipcMain.emit('show-notification', null, { 
+      title: '⚠️ Alerta de CPU', 
+      body: `Uso de CPU em ${cpu.usageTotal}%! Considere fechar programas.`,
+      type: 'cpu-alert'
+    });
+  }
+  
+  if (memory.percent >= 90) {
+    mainWindow?.webContents.send('system-alert', { type: 'memory', value: memory.percent });
+    ipcMain.emit('show-notification', null, { 
+      title: '⚠️ Alerta de Memória', 
+      body: `Uso de memória em ${memory.percent}%! Considere fechar programas.`,
+      type: 'memory-alert'
+    });
+  }
+
+  return {
+    cpu,
+    memory,
+    disk,
+    network,
+    processes,
+    temperature: { cpu: temp },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// ================= MONITORAMENTO ATUALIZADO =================
+function startSystemMonitor() {
+  if (monitorInterval) return;
+
+  monitorInterval = setInterval(async () => {
+    const stats = await collectSystemStatsWithNetwork();
+    if (!mainWindow?.isDestroyed()) {
+      mainWindow.webContents.send('system-stats', stats);
+    }
+  }, 1000);
+}
 
 // ================= LIFECYCLE =================
 app.whenReady().then(createWindow);
