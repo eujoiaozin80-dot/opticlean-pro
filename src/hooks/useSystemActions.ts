@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Verificar se está rodando no Electron com APIs disponíveis
 const isElectron = (): boolean => {
@@ -14,6 +15,24 @@ const isElectron = (): boolean => {
   }
 };
 
+// Função para registrar operação no histórico
+async function logOperation(type: string, name: string, details: string, status: string = 'completed') {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('operation_history').insert({
+        user_id: user.id,
+        operation_type: type,
+        operation_name: name,
+        details,
+        status,
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao registrar operação:', error);
+  }
+}
+
 export const useSystemActions = () => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -21,8 +40,8 @@ export const useSystemActions = () => {
   const cleanSystem = useCallback(async () => {
     if (!isElectron()) {
       toast({
-        title: "Modo Offline",
-        description: "Esta função requer o aplicativo Electron",
+        title: "Modo Desktop Necessário",
+        description: "Execute o aplicativo .exe para usar esta função",
         variant: "default",
       });
       return null;
@@ -33,17 +52,27 @@ export const useSystemActions = () => {
       const result = await window.electronAPI.cleanSystem();
       
       toast({
-        title: "Limpeza concluída!",
-        description: `${result.tempFiles} arquivos removidos. ${result.freedSpace}MB liberados.`,
+        title: "🧹 Limpeza Concluída!",
+        description: `${result.tempFiles} arquivos removidos • ${result.freedSpace}MB liberados`,
       });
+      
+      // Registrar no histórico
+      await logOperation(
+        'cleaning', 
+        'Limpeza do Sistema', 
+        `${result.tempFiles} arquivos, ${result.freedSpace}MB liberados. ${result.details || ''}`
+      );
+      
       return result;
     } catch (error) {
       console.error('Erro ao limpar sistema:', error);
       toast({
-        title: "Erro na limpeza",
-        description: "Não foi possível limpar o sistema",
+        title: "Erro na Limpeza",
+        description: "Não foi possível completar a limpeza. Tente novamente.",
         variant: "destructive",
       });
+      
+      await logOperation('cleaning', 'Limpeza do Sistema', 'Falha na operação', 'failed');
       return null;
     } finally {
       setIsProcessing(false);
@@ -53,8 +82,8 @@ export const useSystemActions = () => {
   const optimizeSystem = useCallback(async () => {
     if (!isElectron()) {
       toast({
-        title: "Modo Offline",
-        description: "Esta função requer o aplicativo Electron",
+        title: "Modo Desktop Necessário",
+        description: "Execute o aplicativo .exe para usar esta função",
         variant: "default",
       });
       return null;
@@ -65,17 +94,26 @@ export const useSystemActions = () => {
       const result = await window.electronAPI.optimizeSystem();
       
       toast({
-        title: "Otimização concluída!",
-        description: `Sistema otimizado. ${result.processesOptimized} processos ajustados.`,
+        title: "⚡ Otimização Concluída!",
+        description: `${result.processesOptimized} processos otimizados • ${result.memoryFreed}GB RAM livre`,
       });
+      
+      await logOperation(
+        'optimization', 
+        'Otimização do Sistema', 
+        `${result.processesOptimized} processos ajustados. ${result.actions || ''}`
+      );
+      
       return result;
     } catch (error) {
       console.error('Erro ao otimizar sistema:', error);
       toast({
-        title: "Erro na otimização",
-        description: "Não foi possível otimizar o sistema",
+        title: "Erro na Otimização",
+        description: "Não foi possível completar a otimização",
         variant: "destructive",
       });
+      
+      await logOperation('optimization', 'Otimização do Sistema', 'Falha na operação', 'failed');
       return null;
     } finally {
       setIsProcessing(false);
@@ -85,8 +123,8 @@ export const useSystemActions = () => {
   const analyzeSystem = useCallback(async () => {
     if (!isElectron()) {
       toast({
-        title: "Modo Offline",
-        description: "Esta função requer o aplicativo Electron",
+        title: "Modo Desktop Necessário",
+        description: "Execute o aplicativo .exe para usar esta função",
         variant: "default",
       });
       return { totalIssues: 0, issues: [], cpuHealth: 'unknown', memHealth: 'unknown', diskHealth: 'unknown' };
@@ -98,25 +136,38 @@ export const useSystemActions = () => {
       
       if (result.totalIssues === 0) {
         toast({
-          title: "Sistema saudável!",
-          description: "Nenhum problema detectado",
+          title: "✅ Sistema Saudável!",
+          description: "Nenhum problema detectado. Tudo funcionando bem!",
         });
       } else {
+        const highSeverity = result.issues.filter(i => i.severity === 'high').length;
+        const mediumSeverity = result.issues.filter(i => i.severity === 'medium').length;
+        
         toast({
-          title: `${result.totalIssues} problema(s) encontrado(s)`,
-          description: result.issues[0]?.title || "Verifique os detalhes",
-          variant: "default",
+          title: `⚠️ ${result.totalIssues} Problema(s) Detectado(s)`,
+          description: highSeverity > 0 
+            ? `${highSeverity} crítico(s), ${mediumSeverity} moderado(s)`
+            : result.issues[0]?.title || "Verifique os detalhes",
+          variant: highSeverity > 0 ? "destructive" : "default",
         });
       }
+      
+      await logOperation(
+        'analysis', 
+        'Análise Completa', 
+        `${result.totalIssues} problema(s). CPU: ${result.cpuHealth}, RAM: ${result.memHealth}, Disco: ${result.diskHealth}`
+      );
       
       return result;
     } catch (error) {
       console.error('Erro ao analisar sistema:', error);
       toast({
-        title: "Erro na análise",
-        description: "Não foi possível analisar o sistema",
+        title: "Erro na Análise",
+        description: "Não foi possível completar a análise",
         variant: "destructive",
       });
+      
+      await logOperation('analysis', 'Análise Completa', 'Falha na operação', 'failed');
       return { totalIssues: 0, issues: [], cpuHealth: 'unknown', memHealth: 'unknown', diskHealth: 'unknown' };
     } finally {
       setIsProcessing(false);
@@ -126,8 +177,8 @@ export const useSystemActions = () => {
   const killProcess = useCallback(async (pid: number, name: string) => {
     if (!isElectron()) {
       toast({
-        title: "Modo Offline",
-        description: "Esta função requer o aplicativo Electron",
+        title: "Modo Desktop Necessário",
+        description: "Execute o aplicativo .exe para usar esta função",
         variant: "default",
       });
       return false;
@@ -138,13 +189,15 @@ export const useSystemActions = () => {
       
       if (result.success) {
         toast({
-          title: "Processo finalizado",
-          description: `${name} foi encerrado com sucesso`,
+          title: "Processo Finalizado",
+          description: `${name} (PID: ${pid}) foi encerrado`,
         });
+        
+        await logOperation('process', `Processo Finalizado: ${name}`, `PID: ${pid}`);
         return true;
       } else {
         toast({
-          title: "Erro ao finalizar processo",
+          title: "Erro ao Finalizar",
           description: result.error || "Permissões insuficientes",
           variant: "destructive",
         });
@@ -164,8 +217,8 @@ export const useSystemActions = () => {
   const checkUpdates = useCallback(async () => {
     if (!isElectron()) {
       toast({
-        title: "Modo Offline",
-        description: "Esta função requer o aplicativo Electron",
+        title: "Modo Desktop Necessário",
+        description: "Execute o aplicativo .exe para usar esta função",
         variant: "default",
       });
       return { totalUpdates: 0, updates: [] };
@@ -176,17 +229,19 @@ export const useSystemActions = () => {
       const result = await window.electronAPI.checkUpdates();
       
       toast({
-        title: "Verificação concluída",
+        title: result.totalUpdates > 0 ? "🔄 Atualizações Disponíveis" : "✅ Sistema Atualizado",
         description: result.totalUpdates > 0 
-          ? `${result.totalUpdates} atualização(ões) disponível(is)`
-          : "Sistema atualizado",
+          ? `${result.totalUpdates} atualização(ões) do Windows disponível(is)`
+          : "Nenhuma atualização pendente",
       });
+      
+      await logOperation('updates', 'Verificação de Atualizações', `${result.totalUpdates} atualizações disponíveis`);
       
       return result;
     } catch (error) {
       console.error('Erro ao verificar atualizações:', error);
       toast({
-        title: "Erro na verificação",
+        title: "Erro na Verificação",
         description: "Não foi possível verificar atualizações",
         variant: "destructive",
       });
@@ -196,12 +251,27 @@ export const useSystemActions = () => {
     }
   }, [toast]);
 
+  const getStartupPrograms = useCallback(async () => {
+    if (!isElectron()) {
+      return { programs: [], total: 0 };
+    }
+
+    try {
+      const result = await window.electronAPI.getStartupPrograms();
+      return result;
+    } catch (error) {
+      console.error('Erro ao obter programas de inicialização:', error);
+      return { programs: [], total: 0 };
+    }
+  }, []);
+
   return {
     cleanSystem,
     optimizeSystem,
     analyzeSystem,
     killProcess,
     checkUpdates,
+    getStartupPrograms,
     isProcessing,
     isElectron: isElectron(),
   };
