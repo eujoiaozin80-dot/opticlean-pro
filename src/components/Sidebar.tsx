@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -11,9 +11,13 @@ import {
   ChevronRight,
   LogOut,
   Users,
-  Activity
+  Activity,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useAppUpdates } from '@/hooks/useAppUpdates';
+import { UpdateDialog } from '@/components/UpdateDialog';
 import logoOpticlean from '@/assets/logo-opticlean.png';
 
 interface SidebarProps {
@@ -23,8 +27,10 @@ interface SidebarProps {
 
 const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const location = useLocation();
   const isFounder = userRole === 'founder';
+  const { available, downloaded, currentVersion } = useAppUpdates();
 
   const mainItems = [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -59,9 +65,17 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
           />
           {!collapsed && (
             <div className="animate-fade-in">
-              <h2 className="font-semibold text-foreground">OptiClean Pro</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-foreground">OptiClean Pro</h2>
+                {(available || downloaded) && (
+                  <Badge variant="destructive" className="animate-pulse">
+                    <Download className="w-3 h-3 mr-1" />
+                    Atualizar
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                {isFounder ? 'Administrador' : 'v1.1.0'}
+                {isFounder ? 'Administrador' : currentVersion || 'v1.1.0'}
               </p>
             </div>
           )}
@@ -142,6 +156,22 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
         )}
       </nav>
 
+      {/* Update Indicator */}
+      {(available || downloaded) && !collapsed && (
+        <div className={`p-3 border-t border-border/50 ${collapsed ? 'px-3' : ''}`}>
+          <Button
+            variant="outline"
+            onClick={() => setShowUpdateDialog(true)}
+            className={`w-full justify-start text-primary border-primary/50 hover:bg-primary/10 ${
+              collapsed ? 'px-0 justify-center' : ''
+            }`}
+          >
+            <Download className={`w-[18px] h-[18px] ${collapsed ? '' : 'mr-2'}`} />
+            {!collapsed && <span className="font-medium text-sm">Atualização Disponível</span>}
+          </Button>
+        </div>
+      )}
+
       {/* Logout Button */}
       <div className={`p-3 border-t border-border/50 ${collapsed ? 'px-3' : ''}`}>
         <Button
@@ -155,6 +185,11 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
           {!collapsed && <span className="font-medium text-sm">Sair</span>}
         </Button>
       </div>
+
+      {/* Update Dialog */}
+      {typeof window !== 'undefined' && window.electronAPI && (
+        <UpdateDialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog} />
+      )}
     </aside>
   );
 };

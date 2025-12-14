@@ -35,6 +35,43 @@ contextBridge.exposeInMainWorld('electronAPI', {
   killProcess: (pid) => ipcRenderer.invoke('kill-process', pid),
   getStartupPrograms: () => ipcRenderer.invoke('get-startup-programs'),
   checkUpdates: () => ipcRenderer.invoke('check-updates'),
+  
+  // ============================================
+  // Auto Updater
+  // ============================================
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  
+  // Eventos de atualização
+  onUpdateChecking: (callback) => {
+    ipcRenderer.on('update-checking', () => callback());
+  },
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on('update-available', (event, data) => callback(data));
+  },
+  onUpdateNotAvailable: (callback) => {
+    ipcRenderer.on('update-not-available', (event, data) => callback(data));
+  },
+  onUpdateError: (callback) => {
+    ipcRenderer.on('update-error', (event, data) => callback(data));
+  },
+  onUpdateDownloadProgress: (callback) => {
+    ipcRenderer.on('update-download-progress', (event, data) => callback(data));
+  },
+  onUpdateDownloaded: (callback) => {
+    ipcRenderer.on('update-downloaded', (event, data) => callback(data));
+  },
+  
+  removeUpdateListeners: () => {
+    ipcRenderer.removeAllListeners('update-checking');
+    ipcRenderer.removeAllListeners('update-available');
+    ipcRenderer.removeAllListeners('update-not-available');
+    ipcRenderer.removeAllListeners('update-error');
+    ipcRenderer.removeAllListeners('update-download-progress');
+    ipcRenderer.removeAllListeners('update-downloaded');
+  },
 
   // ============================================
   // Gerenciamento de Usuário e Licença

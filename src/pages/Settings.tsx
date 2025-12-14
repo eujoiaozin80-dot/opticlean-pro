@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import UserProfile from '@/components/UserProfile';
 import { OutletContext } from '@/types/outlet-context';
@@ -16,8 +16,9 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   User, Settings2, Sun, Moon, Bell, Download, History, 
   Trash2, Shield, Clock, CheckCircle, AlertCircle, Loader2,
-  FileText, Calendar
+  FileText, Calendar, RefreshCw
 } from 'lucide-react';
+import { UpdateDialog } from '@/components/UpdateDialog';
 
 interface SettingsProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -31,6 +32,8 @@ const Settings = ({ className, ...props }: SettingsProps) => {
   const { toast } = useToast();
   const [notifications, setNotifications] = useState(true);
   const [autoClean, setAutoClean] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [appVersion, setAppVersion] = useState<string>('');
   
   const exportPdfReport = () => {
     try {
@@ -74,6 +77,15 @@ const Settings = ({ className, ...props }: SettingsProps) => {
       default: return <Clock className="w-3.5 h-3.5 text-warning" />;
     }
   };
+
+  // Obter versão do app
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      window.electronAPI.getAppVersion().then(version => {
+        setAppVersion(version);
+      });
+    }
+  }, []);
   
   return (
     <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
@@ -134,6 +146,30 @@ const Settings = ({ className, ...props }: SettingsProps) => {
                 </Button>
               </CardContent>
             </Card>
+
+            {typeof window !== 'undefined' && window.electronAPI && (
+              <Card className="metric-card">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-primary" />
+                    <CardTitle className="text-sm font-medium">Atualizações</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    {appVersion && `Versão atual: ${appVersion}`}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => setShowUpdateDialog(true)} 
+                    className="w-full btn-primary"
+                    variant="outline"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Verificar Atualizações
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
@@ -163,6 +199,11 @@ const Settings = ({ className, ...props }: SettingsProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Update Dialog */}
+      {typeof window !== 'undefined' && window.electronAPI && (
+        <UpdateDialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog} />
+      )}
     </div>
   );
 };

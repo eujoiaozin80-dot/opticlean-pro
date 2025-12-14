@@ -138,6 +138,21 @@ export interface ElectronAPI {
     updates: UpdateInfo[];
   }>;
   
+  // Auto Updater
+  checkForUpdates: () => Promise<{ success: boolean; error?: string }>;
+  downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
+  installUpdate: () => Promise<{ success: boolean; error?: string }>;
+  getAppVersion: () => Promise<string>;
+  
+  // Eventos de atualização
+  onUpdateChecking: (callback: () => void) => void;
+  onUpdateAvailable: (callback: (data: { version: string; releaseDate: string; releaseNotes: string }) => void) => void;
+  onUpdateNotAvailable: (callback: (data: { version: string }) => void) => void;
+  onUpdateError: (callback: (data: { message: string }) => void) => void;
+  onUpdateDownloadProgress: (callback: (data: { percent: number; transferred: number; total: number }) => void) => void;
+  onUpdateDownloaded: (callback: (data: { version: string }) => void) => void;
+  removeUpdateListeners: () => void;
+  
   // Notificações Desktop
   showNotification: (options: { title: string; body: string; type?: string }) => Promise<{
     success: boolean;

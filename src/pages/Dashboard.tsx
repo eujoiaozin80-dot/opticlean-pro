@@ -31,7 +31,9 @@ import { Link } from 'react-router-dom';
 import { useSystemStats } from '@/hooks/useSystemStats';
 import { useSystemActions } from '@/hooks/useSystemActions';
 import { useToast } from '@/hooks/use-toast';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useEffect } from 'react';
 
 interface DashboardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -72,6 +74,52 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
     setShowProgress,
     isElectron 
   } = systemActions;
+
+  // Atalhos de teclado
+  useKeyboardShortcuts([
+    {
+      key: '1',
+      ctrlKey: true,
+      action: () => {
+        if (!isProcessing && isElectron) {
+          cleanSystem();
+          toast({
+            title: 'Limpeza iniciada',
+            description: 'Pressione Ctrl+1 para iniciar limpeza rápida',
+          });
+        }
+      },
+      description: 'Limpeza rápida',
+    },
+    {
+      key: '2',
+      ctrlKey: true,
+      action: () => {
+        if (!isProcessing && isElectron) {
+          optimizeSystem();
+          toast({
+            title: 'Otimização iniciada',
+            description: 'Pressione Ctrl+2 para iniciar otimização',
+          });
+        }
+      },
+      description: 'Otimização',
+    },
+    {
+      key: '3',
+      ctrlKey: true,
+      action: () => {
+        if (!isProcessing && isElectron) {
+          analyzeSystem();
+          toast({
+            title: 'Análise iniciada',
+            description: 'Pressione Ctrl+3 para iniciar análise',
+          });
+        }
+      },
+      description: 'Análise completa',
+    },
+  ]);
 
   const getStatusColor = (percentage: number) => {
     if (percentage >= 90) return 'text-red-500';

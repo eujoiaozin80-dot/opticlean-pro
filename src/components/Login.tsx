@@ -26,7 +26,19 @@ const emailSchema = z.string().trim().email({ message: "E-mail inválido" });
 const passwordSchema = z
   .string()
   .trim()
-  .min(6, { message: "Senha deve ter no mínimo 6 caracteres" });
+  .min(6, { message: "Senha deve ter no mínimo 6 caracteres" })
+  .refine(
+    (val) => /[A-Z]/.test(val),
+    { message: "Senha deve conter pelo menos uma letra maiúscula" }
+  )
+  .refine(
+    (val) => /\d/.test(val),
+    { message: "Senha deve conter pelo menos um número" }
+  )
+  .refine(
+    (val) => /[^a-zA-Z\d]/.test(val),
+    { message: "Senha deve conter pelo menos um caractere especial" }
+  );
 const activationCodeSchema = z
   .string()
   .trim()
@@ -151,10 +163,41 @@ export default function Login({ onLogin }: LoginProps) {
   const [emailError, setEmailError] = useState("");
   const [codeValidation, setCodeValidation] = useState<{ valid: boolean; error?: string } | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
   const { toast } = useToast();
 
   // Rate limiting
   const { canAttempt, remainingAttempts, timeUntilReset, recordAttempt, resetAttempts } = useLoginAttempts();
+
+  // Timer visual para tentativas
+  useEffect(() => {
+    if (timeUntilReset > 0) {
+      setTimerSeconds(Math.ceil(timeUntilReset / 1000));
+      const interval = setInterval(() => {
+        setTimerSeconds((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setTimerSeconds(0);
+    }
+  }, [timeUntilReset]);
+
+  // Verificar requisitos de senha
+  const passwordRequirements = useMemo(() => {
+    return {
+      minLength: password.length >= 6,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecial: /[^a-zA-Z\d]/.test(password),
+    };
+  }, [password]);
 
   // Password strength
   const { strength, strengthColor, strengthBg, strengthLabel } = usePasswordStrength(password);
@@ -322,6 +365,16 @@ export default function Login({ onLogin }: LoginProps) {
           .select("role, full_name, email")
           .eq("id", authData.user.id)
           .single();
+
+        // Salvar "Lembrar-me" se marcado
+        if (rememberMe) {
+          try {
+            localStorage.setItem('opticlean_remember_me', 'true');
+            localStorage.setItem('opticlean_user_email', email);
+          } catch {
+            // Ignorar erros de localStorage
+          }
+        }
 
         onLogin(authData.user.id, profile?.role || 'user', profile?.full_name || undefined);
       } 
@@ -493,7 +546,7 @@ export default function Login({ onLogin }: LoginProps) {
                 />
               </div>
               {!isLogin && password && (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Força da senha:</span>
                     <span className={strengthColor}>{strengthLabel}</span>
@@ -506,6 +559,24 @@ export default function Login({ onLogin }: LoginProps) {
                     } 
                     className="h-1.5"
                   />
+                  <div className="space-y-1 text-xs">
+                    <div className={`flex items-center gap-2 ${passwordRequirements.minLength ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      {passwordRequirements.minLength ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                      <span>Mínimo 6 caracteres</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordRequirements.hasUpperCase ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      {passwordRequirements.hasUpperCase ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                      <span>Uma letra maiúscula</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordRequirements.hasNumber ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      {passwordRequirements.hasNumber ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                      <span>Um número</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordRequirements.hasSpecial ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                      {passwordRequirements.hasSpecial ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                      <span>Um caractere especial</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -520,7 +591,23 @@ export default function Login({ onLogin }: LoginProps) {
                     type="text"
                     value={activationCode}
                     placeholder="OPT-XXXX-XXXX"
-                    onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                    onChange={(e) => {
+                      let value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+                      // Auto-formatação OPT-XXXX-XXXX
+                      if (value.length > 0 && !value.startsWith('OPT-')) {
+                        value = 'OPT-' + value.replace(/^OPT-?/, '');
+                      }
+                      // Limitar formato
+                      const parts = value.replace('OPT-', '').replace(/-/g, '');
+                      if (parts.length <= 8) {
+                        if (parts.length > 4) {
+                          value = `OPT-${parts.slice(0, 4)}-${parts.slice(4)}`;
+                        } else if (parts.length > 0) {
+                          value = `OPT-${parts}`;
+                        }
+                      }
+                      setActivationCode(value);
+                    }}
                     disabled={loading}
                     className={`h-11 rounded-lg font-mono tracking-wider pl-10 ${
                       codeValidation?.valid ? 'border-emerald-500' :
@@ -566,17 +653,47 @@ export default function Login({ onLogin }: LoginProps) {
 
             {/* Rate Limiting Warning */}
             {!canAttempt && (
-              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-2 rounded-lg">
-                <AlertCircle className="w-4 h-4" />
-                <span>
-                  Muitas tentativas. Aguarde {Math.ceil(timeUntilReset / 60000)} minuto(s)
-                </span>
+              <div className="flex flex-col gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="font-medium">Muitas tentativas de login</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="flex-1 bg-destructive/20 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="h-full bg-destructive transition-all duration-1000"
+                      style={{ width: `${(timerSeconds / Math.ceil(AUTH_CONFIG.LOGIN_ATTEMPT_WINDOW_MS / 1000)) * 100}%` }}
+                    />
+                  </div>
+                  <span className="font-mono font-semibold min-w-[60px] text-right">
+                    {Math.floor(timerSeconds / 60)}:{(timerSeconds % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+                <span className="text-xs">Aguarde antes de tentar novamente</span>
               </div>
             )}
 
             {canAttempt && remainingAttempts < AUTH_CONFIG.MAX_LOGIN_ATTEMPTS && (
-              <div className="text-xs text-muted-foreground text-center">
-                Tentativas restantes: {remainingAttempts} de {AUTH_CONFIG.MAX_LOGIN_ATTEMPTS}
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg">
+                <AlertCircle className="w-3 h-3" />
+                <span>
+                  Tentativas restantes: <strong className="text-foreground">{remainingAttempts}</strong> de {AUTH_CONFIG.MAX_LOGIN_ATTEMPTS}
+                </span>
+              </div>
+            )}
+
+            {isLogin && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-border"
+                />
+                <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer">
+                  Lembrar-me
+                </Label>
               </div>
             )}
 

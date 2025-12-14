@@ -3,7 +3,8 @@
 // Código completo e corrigido
 // ================================
 
-import { app, BrowserWindow, ipcMain, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification, dialog } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -19,6 +20,90 @@ const execPromise = util.promisify(exec);
 let mainWindow;
 let monitorInterval = null;
 let lastCpuInfo = null;
+
+// ================= AUTO UPDATER =================
+// Configurar autoUpdater
+autoUpdater.autoDownload = false; // Não baixar automaticamente, pedir permissão
+autoUpdater.autoInstallOnAppQuit = true; // Instalar na próxima inicialização
+
+// Configurar para desenvolvimento (desabilitar atualizações em dev)
+if (process.env.NODE_ENV === 'development') {
+  autoUpdater.updateConfigPath = null;
+}
+
+// Eventos do autoUpdater
+autoUpdater.on('checking-for-update', () => {
+  writeLog('Verificando atualizações...');
+  if (mainWindow) {
+    mainWindow.webContents.send('update-checking');
+  }
+});
+
+autoUpdater.on('update-available', (info) => {
+  writeLog(`Atualização disponível: ${info.version}`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-available', {
+      version: info.version,
+      releaseDate: info.releaseDate,
+      releaseNotes: info.releaseNotes || 'Nova versão disponível',
+    });
+  }
+  
+  // Mostrar notificação
+  if (Notification.isSupported()) {
+    new Notification({
+      title: 'Atualização Disponível',
+      body: `Versão ${info.version} está disponível!`,
+      icon: path.join(__dirname, '../public/favicon.ico'),
+    }).show();
+  }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  writeLog(`Aplicativo está atualizado: ${info.version}`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-not-available', {
+      version: info.version,
+    });
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  writeLog(`Erro ao verificar atualização: ${err.message}`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-error', {
+      message: err.message,
+    });
+  }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-download-progress', {
+      percent: Math.round(progressObj.percent),
+      transferred: progressObj.transferred,
+      total: progressObj.total,
+    });
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  writeLog(`Atualização baixada: ${info.version}`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-downloaded', {
+      version: info.version,
+    });
+  }
+  
+  // Mostrar notificação
+  if (Notification.isSupported()) {
+    new Notification({
+      title: 'Atualização Baixada',
+      body: 'A atualização foi baixada. O aplicativo será reiniciado.',
+      icon: path.join(__dirname, '../public/favicon.ico'),
+    }).show();
+  }
+});
 
 const LICENSE_PATH = path.join(app.getPath('userData'), 'license.json');
 const LOG_PATH = path.join(app.getPath('userData'), 'logs');
@@ -202,29 +287,77 @@ async function getDiskUsage() {
 }
 
 // ================= PROCESSOS =================
+let lastProcessTimes = new Map(); // Armazenar tempos anteriores de processos
+
 async function getProcessList() {
   try {
-    const { stdout } = await execPromise(
-      'wmic process get ProcessId,Name,WorkingSetSize /format:csv'
+    // Buscar informações de processos com CPU e memória
+    const { stdout: processStdout } = await execPromise(
+      'wmic process get ProcessId,Name,WorkingSetSize,PercentProcessorTime /format:csv'
     );
 
-    const lines = stdout.trim().split('\n').slice(1);
+    const lines = processStdout.trim().split('\n').slice(1);
+    const totalMem = os.totalmem();
+    const now = Date.now();
 
-    return lines.slice(0, 50).map(line => {
-      const p = line.split(',');
-      const memBytes = parseInt(p[3]) || 0;
-      const memPercent = Math.round((memBytes / os.totalmem()) * 100);
+    const processes = lines
+      .map(line => {
+        const p = line.split(',');
+        const pid = parseInt(p[2]) || 0;
+        const name = p[1] || 'Unknown';
+        const memBytes = parseInt(p[3]) || 0;
+        
+        if (!pid || !name || name === 'Unknown') return null;
 
-      return {
-        name: p[1] || 'Unknown',
-        pid: parseInt(p[2]) || 0,
-        cpu: 0, // Windows não expõe CPU por processo via wmic facilmente
-        mem: memPercent,
-        cpuPercent: 0,
-        memPercent: memPercent,
-      };
-    }).filter(p => p.name && p.name !== 'Unknown');
-  } catch {
+        // Calcular porcentagem de memória (limitada a 100%)
+        const memPercent = Math.min(100, Math.round((memBytes / totalMem) * 100 * 100) / 100);
+        
+        // Calcular CPU usando PercentProcessorTime
+        let cpuPercent = 0;
+        const percentProcessorTime = parseFloat(p[4]) || 0;
+        
+        // PercentProcessorTime já vem como porcentagem, mas pode ser por núcleo
+        // Dividir pelo número de núcleos para obter porcentagem real
+        const numCores = os.cpus().length;
+        cpuPercent = Math.min(100, Math.round((percentProcessorTime / numCores) * 100) / 100);
+
+        return {
+          name,
+          pid,
+          cpu: cpuPercent,
+          mem: memPercent,
+          cpuPercent: cpuPercent,
+          memPercent: memPercent,
+        };
+      })
+      .filter(p => p !== null)
+      .slice(0, 100); // Limitar a 100 processos
+
+    // Normalizar porcentagens para garantir que a soma não ultrapasse 100%
+    // Isso é normal em sistemas multi-core, mas vamos normalizar para exibição
+    const totalCpu = processes.reduce((sum, p) => sum + p.cpuPercent, 0);
+    const sumMemPercent = processes.reduce((sum, p) => sum + p.memPercent, 0);
+
+    // Se a soma ultrapassar 100%, normalizar proporcionalmente
+    // (Isso é normal para CPU em sistemas multi-core, mas vamos limitar visualmente)
+    if (totalCpu > 100) {
+      const scale = 100 / totalCpu;
+      processes.forEach(p => {
+        p.cpuPercent = Math.min(100, Math.round(p.cpuPercent * scale * 100) / 100);
+        p.cpu = p.cpuPercent;
+      });
+    }
+
+    // Para memória, a soma pode ser > 100% porque múltiplos processos usam memória
+    // Mas vamos garantir que nenhum processo individual ultrapasse 100%
+    processes.forEach(p => {
+      p.memPercent = Math.min(100, p.memPercent);
+      p.mem = p.memPercent;
+    });
+
+    return processes;
+  } catch (error) {
+    writeLog(`Erro ao buscar processos: ${error.message}`);
     return [];
   }
 }
@@ -849,8 +982,65 @@ ipcMain.handle('check-updates', async () => {
   };
 });
 
+// ================= IPC HANDLERS - AUTO UPDATER =================
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    await autoUpdater.checkForUpdates();
+    return { success: true };
+  } catch (error) {
+    writeLog(`Erro ao verificar atualizações: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('download-update', async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+    return { success: true };
+  } catch (error) {
+    writeLog(`Erro ao baixar atualização: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('install-update', async () => {
+  try {
+    autoUpdater.quitAndInstall(false, true);
+    return { success: true };
+  } catch (error) {
+    writeLog(`Erro ao instalar atualização: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
 // ================= LIFECYCLE =================
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  
+  // Verificar atualizações após 5 segundos (dar tempo para app carregar)
+  setTimeout(() => {
+    if (process.env.NODE_ENV !== 'development') {
+      writeLog('Iniciando verificação de atualizações...');
+      autoUpdater.checkForUpdates().catch(err => {
+        writeLog(`Erro ao verificar atualizações: ${err.message}`);
+      });
+    }
+  }, 5000);
+  
+  // Verificar atualizações a cada 4 horas
+  setInterval(() => {
+    if (process.env.NODE_ENV !== 'development' && mainWindow) {
+      writeLog('Verificação periódica de atualizações...');
+      autoUpdater.checkForUpdates().catch(err => {
+        writeLog(`Erro ao verificar atualizações: ${err.message}`);
+      });
+    }
+  }, 4 * 60 * 60 * 1000); // 4 horas
+});
 
 app.on('window-all-closed', () => {
   stopSystemMonitor();

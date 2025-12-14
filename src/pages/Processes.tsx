@@ -7,7 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { 
   X, Search, Activity, Wifi, WifiOff, RefreshCw, Cpu, 
-  Download, Filter, Shield, ShieldOff, History as HistoryIcon
+  Download, Filter, Shield, ShieldOff, History as HistoryIcon, Trash2, CheckSquare, Square
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useProcesses } from '@/hooks/useProcesses';
@@ -64,6 +64,8 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'cpu' | 'mem' | 'name'>('cpu');
   const [groupBy, setGroupBy] = useState(false);
+  const [selectedProcesses, setSelectedProcesses] = useState<Set<number>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Atalhos de teclado
@@ -121,6 +123,66 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
     if (success && process) {
       addToHistory(process);
     }
+  };
+
+  // Ações em lote
+  const handleSelectProcess = (pid: number) => {
+    setSelectedProcesses((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(pid)) {
+        newSet.delete(pid);
+      } else {
+        newSet.add(pid);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProcesses.size === filteredProcesses.length) {
+      setSelectedProcesses(new Set());
+    } else {
+      setSelectedProcesses(new Set(filteredProcesses.map((p) => p.pid)));
+    }
+  };
+
+  const handleBulkKill = async () => {
+    if (selectedProcesses.size === 0) return;
+
+    const processesToKill = filteredProcesses.filter((p) => selectedProcesses.has(p.pid));
+    const protectedProcesses = processesToKill.filter((p) => isProtected(p.name));
+
+    if (protectedProcesses.length > 0) {
+      toast({
+        title: 'Processos protegidos',
+        description: `${protectedProcesses.length} processo(s) protegido(s) não podem ser finalizados`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setBulkActionLoading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const process of processesToKill) {
+      const success = await killProcess(process.pid, process.name);
+      if (success) {
+        successCount++;
+        addToHistory(process);
+      } else {
+        failCount++;
+      }
+    }
+
+    setSelectedProcesses(new Set());
+    setBulkActionLoading(false);
+
+    toast({
+      title: 'Ação em lote concluída',
+      description: `${successCount} processo(s) finalizado(s)${failCount > 0 ? `, ${failCount} falha(s)` : ''}`,
+      variant: failCount > 0 ? 'destructive' : 'default',
+    });
   };
 
   const handleExport = (format: 'csv' | 'json') => {
@@ -273,6 +335,17 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
               <Badge variant="outline">{filteredProcesses.length}</Badge>
             </div>
             <div className="flex items-center gap-2">
+              {selectedProcesses.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkKill}
+                  disabled={bulkActionLoading}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Finalizar {selectedProcesses.size} processo(s)
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -413,7 +486,7 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
                 Nenhum processo encontrado
               </p>
             </div>
-          ) : groupBy && Array.isArray(sortedAndGroupedProcesses) && typeof sortedAndGroupedProcesses[0] === 'object' && 'name' in sortedAndGroupedProcesses[0] ? (
+          ) : groupBy && Array.isArray(sortedAndGroupedProcesses) && sortedAndGroupedProcesses.length > 0 && typeof sortedAndGroupedProcesses[0] === 'object' && 'name' in sortedAndGroupedProcesses[0] ? (
             // Renderizar agrupado
             <div className="space-y-4 max-h-[500px] overflow-y-auto">
               {(sortedAndGroupedProcesses as Array<{ name: string; processes: typeof filteredProcesses; totalCpu: number; totalMem: number; count: number }>).map((group) => (
@@ -475,36 +548,72 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
           ) : (
             // Renderizar lista normal
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {/* Header com seleção */}
+              <div className="flex items-center gap-2 p-2 border-b border-border/50 sticky top-0 bg-background/95 backdrop-blur-sm z-10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="h-7 w-7 p-0"
+                >
+                  {selectedProcesses.size === filteredProcesses.length && filteredProcesses.length > 0 ? (
+                    <CheckSquare className="w-4 h-4" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {selectedProcesses.size > 0 ? `${selectedProcesses.size} selecionado(s)` : 'Selecionar todos'}
+                </span>
+              </div>
               {(sortedAndGroupedProcesses as typeof filteredProcesses).map((process, index) => (
                 <div
                   key={process.pid}
-                  className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50 hover:border-primary/20 transition-all animate-fade-up"
+                  className={`flex items-center justify-between p-3 bg-background/50 rounded-lg border transition-all animate-fade-up ${
+                    selectedProcesses.has(process.pid)
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border/50 hover:border-primary/20'
+                  }`}
                   style={{ animationDelay: `${index * 0.02}s` }}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-sm text-foreground truncate">
-                        {process.name}
-                      </p>
-                      {isProtected(process.name) && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Shield className="w-4 h-4 text-emerald-500" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Processo protegido</p>
-                          </TooltipContent>
-                        </Tooltip>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSelectProcess(process.pid)}
+                      className="h-5 w-5 p-0"
+                    >
+                      {selectedProcesses.has(process.pid) ? (
+                        <CheckSquare className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Square className="w-4 h-4 text-muted-foreground" />
                       )}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="font-mono">PID: {process.pid}</span>
-                      <span className={getCpuColor(process.cpuPercent)}>
-                        CPU: {process.cpuPercent.toFixed(1)}%
-                      </span>
-                      <span className={getMemColor(process.memPercent)}>
-                        RAM: {process.memPercent.toFixed(1)}%
-                      </span>
+                    </Button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-sm text-foreground truncate">
+                          {process.name}
+                        </p>
+                        {isProtected(process.name) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Shield className="w-4 h-4 text-emerald-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Processo protegido</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="font-mono">PID: {process.pid}</span>
+                        <span className={getCpuColor(process.cpuPercent)}>
+                          CPU: {process.cpuPercent.toFixed(1)}%
+                        </span>
+                        <span className={getMemColor(process.memPercent)}>
+                          RAM: {process.memPercent.toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <Button
