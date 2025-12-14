@@ -131,6 +131,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
 2. Execute as migrations em `supabase/migrations/`
 3. Configure as políticas RLS conforme necessário
 
+Primeira release automatizada 🚀
+
 ## 🎯 Uso
 
 ### Primeiro Acesso
