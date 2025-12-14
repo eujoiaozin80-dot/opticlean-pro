@@ -133,6 +133,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
 
 Primeira release automatizada 🚀
 
+
 ## 🎯 Uso
 
 ### Primeiro Acesso
@@ -206,6 +207,7 @@ Para suporte, abra uma issue no GitHub ou entre em contato via email.
 - [ ] Modo de segurança com preview
 
 ---
+Release pipeline configurado com sucesso 🚀
 
 **Desenvolvido com ❤️ usando Electron e React**
 
