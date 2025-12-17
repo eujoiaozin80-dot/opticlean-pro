@@ -132,6 +132,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_activation_code: {
+        Args: { code_to_check: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "founder" | "user"
