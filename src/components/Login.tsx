@@ -301,11 +301,17 @@ export default function Login({ onLogin }: LoginProps) {
 
     try {
       emailSchema.parse(email);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/#/reset-password`,
+      
+      // Usar edge function para enviar email customizado
+      const response = await supabase.functions.invoke('send-password-reset', {
+        body: {
+          email,
+          redirectTo: `${window.location.origin}/#/reset-password`,
+        },
       });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Erro ao enviar email");
 
       toast({
         title: "Email enviado",
