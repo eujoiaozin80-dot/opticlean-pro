@@ -18,6 +18,7 @@ const Startup = lazy(() => import("./pages/Startup"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Users = lazy(() => import("./pages/Users"));
 const Settings = lazy(() => import("./pages/Settings"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,6 +68,7 @@ const App = () => (
                   } 
                 />
               </Route>
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
