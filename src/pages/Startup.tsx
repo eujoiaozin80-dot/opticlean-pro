@@ -39,8 +39,8 @@ const Startup = ({ className, ...props }: StartupProps) => {
 
     try {
       setConnectionStatus('connecting');
-      const data = await window.electronAPI.getStartupPrograms();
-      setPrograms(data || []);
+      const result = await window.electronAPI.getStartupPrograms();
+      setPrograms(result?.programs || []);
       setConnectionStatus('connected');
       setLoading(false);
     } catch (error) {

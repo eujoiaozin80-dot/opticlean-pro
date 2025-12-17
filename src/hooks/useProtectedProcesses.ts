@@ -48,7 +48,7 @@ export const useProtectedProcesses = () => {
   const removeProtected = useCallback(
     (processName: string) => {
       // Não permitir remover processos críticos do sistema
-      if (PROCESS_CONSTANTS.CRITICAL_PROCESSES.includes(processName)) {
+      if ((PROCESS_CONSTANTS.CRITICAL_PROCESSES as readonly string[]).includes(processName)) {
         return false;
       }
 
