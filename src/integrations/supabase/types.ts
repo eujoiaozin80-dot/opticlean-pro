@@ -116,36 +116,6 @@ export type Database = {
         }
         Relationships: []
       }
-      admin_logs: {
-        Row: {
-          id: string
-          admin_id: string
-          action: string
-          target_type: string
-          target_id: string
-          details: Json
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          admin_id: string
-          action: string
-          target_type: string
-          target_id: string
-          details?: Json
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          admin_id?: string
-          action?: string
-          target_type?: string
-          target_id?: string
-          details?: Json
-          created_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
