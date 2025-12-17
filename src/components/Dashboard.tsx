@@ -602,9 +602,9 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold mb-2">
-                  {metricsLoading ? '...' : `${memory.percentage}%`}
+                  {metricsLoading ? '...' : `${memory.percent}%`}
                 </div>
-                <Progress value={memory.percentage} className="h-2" />
+                <Progress value={memory.percent} className="h-2" />
                 <p className="text-xs text-muted-foreground mt-2">
                   {memory.used} GB / {memory.total} GB
                 </p>
@@ -620,9 +620,9 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold mb-2">
-                  {metricsLoading ? '...' : `${disk.percentage}%`}
+                  {metricsLoading ? '...' : `${disk.percent}%`}
                 </div>
-                <Progress value={disk.percentage} className="h-2" />
+                <Progress value={disk.percent} className="h-2" />
                 <p className="text-xs text-muted-foreground mt-2">
                   {disk.used} GB / {disk.total} GB
                 </p>

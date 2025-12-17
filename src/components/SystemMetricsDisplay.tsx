@@ -118,11 +118,11 @@ const SystemMetricsDisplay = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Uso</span>
-                <span className={`text-2xl font-bold ${getStatusColor(memory.percentage)}`}>
-                  {memory.percentage}%
+                <span className={`text-2xl font-bold ${getStatusColor(memory.percent)}`}>
+                  {memory.percent}%
                 </span>
               </div>
-              <Progress value={memory.percentage} className="h-2" />
+              <Progress value={memory.percent} className="h-2" />
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Usado</span>
@@ -152,11 +152,11 @@ const SystemMetricsDisplay = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Uso</span>
-                <span className={`text-2xl font-bold ${getStatusColor(disk.percentage)}`}>
-                  {disk.percentage}%
+                <span className={`text-2xl font-bold ${getStatusColor(disk.percent)}`}>
+                  {disk.percent}%
                 </span>
               </div>
-              <Progress value={disk.percentage} className="h-2" />
+              <Progress value={disk.percent} className="h-2" />
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Usado</span>
