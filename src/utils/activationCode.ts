@@ -5,14 +5,12 @@ export interface ActivationCodeValidation {
   error?: string;
   code?: {
     id: string;
-    code: string;
     validity_days: number | null;
-    expires_at: string | null;
   };
 }
 
 /**
- * Valida código de ativação antes de usar
+ * Valida código de ativação usando RPC seguro (não expõe códigos)
  */
 export async function validateActivationCode(code: string): Promise<ActivationCodeValidation> {
   try {
@@ -22,34 +20,27 @@ export async function validateActivationCode(code: string): Promise<ActivationCo
       return { valid: false, error: 'Código de ativação é obrigatório' };
     }
 
-    // Buscar código
-    const { data, error } = await supabase
-      .from('activation_codes')
-      .select('*')
-      .eq('code', normalizedCode)
-      .single();
+    // Usar RPC seguro para validar código sem expor dados
+    const { data, error } = await supabase.rpc('validate_activation_code', {
+      code_to_check: normalizedCode
+    });
 
-    if (error || !data) {
-      return { valid: false, error: 'Código de ativação inválido' };
+    if (error) {
+      console.error('Erro ao validar código:', error);
+      return { valid: false, error: 'Erro ao validar código de ativação' };
     }
 
-    // Verificar se já foi usado
-    if (data.is_used) {
-      return { valid: false, error: 'Código de ativação já foi utilizado' };
-    }
+    const result = data as { valid: boolean; error?: string; code_id?: string; validity_days?: number };
 
-    // Verificar expiração (se houver data de expiração definida)
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      return { valid: false, error: 'Código de ativação expirado' };
+    if (!result.valid) {
+      return { valid: false, error: result.error || 'Código de ativação inválido' };
     }
 
     return {
       valid: true,
       code: {
-        id: data.id,
-        code: data.code,
-        validity_days: data.validity_days,
-        expires_at: data.expires_at,
+        id: result.code_id!,
+        validity_days: result.validity_days ?? null,
       },
     };
   } catch (error) {
