@@ -15,6 +15,8 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,36 +32,89 @@ export default function ResetPassword() {
   const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
 
   useEffect(() => {
-    // Verificar se há uma sessão de recovery
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        // Verificar hash da URL para tokens
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const type = hashParams.get('type');
+    const handleRecoveryToken = async () => {
+      try {
+        // Verificar se já existe uma sessão válida
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
         
+        if (existingSession) {
+          setSessionReady(true);
+          setCheckingSession(false);
+          return;
+        }
+
+        // Extrair tokens da URL (podem estar no hash ou query params)
+        const fullUrl = window.location.href;
+        
+        // Tentar extrair do hash (formato: #access_token=xxx ou /#/reset-password#access_token=xxx)
+        let accessToken = null;
+        let refreshToken = null;
+        let type = null;
+        
+        // Verificar hash
+        const hashIndex = fullUrl.lastIndexOf('#');
+        if (hashIndex !== -1) {
+          const hashPart = fullUrl.substring(hashIndex + 1);
+          const hashParams = new URLSearchParams(hashPart.replace(/^\/reset-password/, '').replace(/^#/, ''));
+          accessToken = hashParams.get('access_token');
+          refreshToken = hashParams.get('refresh_token');
+          type = hashParams.get('type');
+        }
+        
+        // Verificar query params também
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!accessToken) {
+          accessToken = urlParams.get('access_token');
+          refreshToken = urlParams.get('refresh_token');
+          type = urlParams.get('type');
+        }
+
         if (type === 'recovery' && accessToken) {
-          // Configurar sessão com o token
-          const { error } = await supabase.auth.setSession({
+          const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
-            refresh_token: hashParams.get('refresh_token') || '',
+            refresh_token: refreshToken || '',
           });
           
           if (error) {
+            console.error('Erro ao configurar sessão:', error);
             toast({
-              title: 'Link inválido',
-              description: 'O link de recuperação expirou ou é inválido. Solicite um novo.',
+              title: 'Link expirado',
+              description: 'Solicite um novo link de recuperação de senha.',
               variant: 'destructive',
             });
             setTimeout(() => navigate('/'), 3000);
+            return;
           }
+
+          if (data.session) {
+            setSessionReady(true);
+          }
+        } else {
+          // Sem token, verificar evento de auth
+          const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+              setSessionReady(true);
+            }
+          });
+
+          // Aguardar um pouco para o evento
+          setTimeout(() => {
+            if (!sessionReady) {
+              setCheckingSession(false);
+            }
+          }, 2000);
+
+          return () => subscription.unsubscribe();
         }
+      } catch (error) {
+        console.error('Erro ao processar token:', error);
+      } finally {
+        setCheckingSession(false);
       }
     };
     
-    checkSession();
-  }, [navigate, toast]);
+    handleRecoveryToken();
+  }, [navigate, toast, sessionReady]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +158,44 @@ export default function ResetPassword() {
       setLoading(false);
     }
   };
+
+  // Estado de carregamento
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Verificando link de recuperação...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Sem sessão válida
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center max-w-md"
+        >
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Link Inválido</h1>
+          <p className="text-muted-foreground mb-4">
+            O link de recuperação expirou ou é inválido. Solicite um novo link de recuperação na tela de login.
+          </p>
+          <Button onClick={() => navigate('/')}>
+            Voltar ao Login
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
