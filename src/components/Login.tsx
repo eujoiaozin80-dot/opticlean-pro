@@ -342,8 +342,19 @@ export default function Login({ onLogin }: LoginProps) {
     setLoading(true);
 
     try {
-      emailSchema.parse(email);
-      passwordSchema.parse(password);
+      // Validar email
+      const emailResult = emailSchema.safeParse(email);
+      if (!emailResult.success) {
+        throw new Error(emailResult.error.errors[0].message);
+      }
+      
+      // Validar senha
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        // Mostrar todas as mensagens de erro de forma amigável
+        const errorMessages = passwordResult.error.errors.map(e => e.message);
+        throw new Error(errorMessages.join('\n'));
+      }
 
       await runCinematic();
 
