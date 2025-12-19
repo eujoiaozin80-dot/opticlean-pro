@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Dialog, 
   DialogContent, 
@@ -26,12 +27,18 @@ import {
   AlertDialogTrigger 
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users as UsersIcon, Shield, UserCheck, UserX, Calendar, Activity, TrendingUp, Search, Edit, ArrowUpDown, Trash2 } from 'lucide-react';
+import { 
+  Users as UsersIcon, Shield, UserCheck, UserX, Calendar, Activity, TrendingUp, 
+  Search, Edit, ArrowUpDown, Trash2, Download, FileText, CheckSquare, Square,
+  CalendarDays, BarChart3, RefreshCw
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OutletContext } from '@/types/outlet-context';
 import { logAdminAction } from '@/utils/adminLogs';
 import { Badge } from '@/components/ui/badge';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface User {
   id: string;
@@ -42,6 +49,7 @@ interface User {
   is_active: boolean;
   last_login: string | null;
   created_at: string;
+  operations_count?: number;
 }
 
 interface UsersProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -56,23 +64,29 @@ const Users = ({ className, ...props }: UsersProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'founder' | 'user'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'email' | 'created_at' | 'last_login'>('created_at');
+  const [sortBy, setSortBy] = useState<'name' | 'email' | 'created_at' | 'last_login' | 'operations'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState<'founder' | 'user'>('user');
+  
+  // Novos estados para melhorias
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [dateFilterStart, setDateFilterStart] = useState('');
+  const [dateFilterEnd, setDateFilterEnd] = useState('');
+  const [dateFilterType, setDateFilterType] = useState<'created' | 'login'>('created');
+  const [refreshing, setRefreshing] = useState(false);
+  
   const itemsPerPage = 20;
   const { toast } = useToast();
 
   const loadStats = async () => {
     try {
-      // Total operations
       const { count: opCount } = await supabase
         .from('operation_history')
         .select('*', { count: 'exact', head: true });
 
-      // Used activation codes
       const { count: codesCount } = await supabase
         .from('activation_codes')
         .select('*', { count: 'exact', head: true })
@@ -90,13 +104,29 @@ const Users = ({ className, ...props }: UsersProps) => {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Buscar contagem de operações por usuário
+      const usersWithOperations = await Promise.all(
+        (profilesData || []).map(async (user) => {
+          const { count } = await supabase
+            .from('operation_history')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          
+          return {
+            ...user,
+            operations_count: count || 0
+          };
+        })
+      );
+
+      setUsers(usersWithOperations);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
       toast({
@@ -114,7 +144,13 @@ const Users = ({ className, ...props }: UsersProps) => {
     loadStats();
   }, []);
 
-  // Filtros e ordenação
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadUsers();
+    await loadStats();
+    setRefreshing(false);
+    toast({ title: 'Atualizado', description: 'Lista de usuários atualizada' });
+  };
 
   // Filtros e ordenação
   const filteredAndSortedUsers = useMemo(() => {
@@ -141,6 +177,22 @@ const Users = ({ className, ...props }: UsersProps) => {
       filtered = filtered.filter(user => !user.is_active);
     }
 
+    // Filtro de data
+    if (dateFilterStart || dateFilterEnd) {
+      filtered = filtered.filter(user => {
+        const dateField = dateFilterType === 'created' ? user.created_at : user.last_login;
+        if (!dateField) return false;
+        
+        const date = new Date(dateField);
+        const start = dateFilterStart ? new Date(dateFilterStart) : null;
+        const end = dateFilterEnd ? new Date(dateFilterEnd + 'T23:59:59') : null;
+        
+        if (start && date < start) return false;
+        if (end && date > end) return false;
+        return true;
+      });
+    }
+
     // Ordenação
     filtered.sort((a, b) => {
       let aVal: any, bVal: any;
@@ -162,6 +214,10 @@ const Users = ({ className, ...props }: UsersProps) => {
           aVal = a.last_login ? new Date(a.last_login).getTime() : 0;
           bVal = b.last_login ? new Date(b.last_login).getTime() : 0;
           break;
+        case 'operations':
+          aVal = a.operations_count || 0;
+          bVal = b.operations_count || 0;
+          break;
       }
 
       if (sortOrder === 'asc') {
@@ -172,7 +228,7 @@ const Users = ({ className, ...props }: UsersProps) => {
     });
 
     return filtered;
-  }, [users, searchTerm, roleFilter, statusFilter, sortBy, sortOrder]);
+  }, [users, searchTerm, roleFilter, statusFilter, sortBy, sortOrder, dateFilterStart, dateFilterEnd, dateFilterType]);
 
   // Paginação
   const totalPages = Math.ceil(filteredAndSortedUsers.length / itemsPerPage);
@@ -181,6 +237,125 @@ const Users = ({ className, ...props }: UsersProps) => {
     const end = start + itemsPerPage;
     return filteredAndSortedUsers.slice(start, end);
   }, [filteredAndSortedUsers, currentPage]);
+
+  // Seleção em massa
+  const handleSelectUser = (userId: string) => {
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUsers.size === paginatedUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(paginatedUsers.map(u => u.id)));
+    }
+  };
+
+  // Ações em massa
+  const bulkToggleStatus = async (newStatus: boolean) => {
+    if (selectedUsers.size === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: newStatus })
+        .in('id', Array.from(selectedUsers));
+
+      if (error) throw error;
+
+      await logAdminAction(userId, 'bulk_toggle_status', 'users', 'bulk', {
+        count: selectedUsers.size,
+        newStatus
+      });
+
+      toast({
+        title: 'Atualizado',
+        description: `${selectedUsers.size} usuário(s) ${newStatus ? 'ativado(s)' : 'desativado(s)'}`
+      });
+
+      setSelectedUsers(new Set());
+      loadUsers();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar os usuários',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Exportar CSV
+  const exportToCSV = () => {
+    try {
+      const csv = [
+        ['Nome', 'Email', 'Role', 'Status', 'Operações', 'Último Login', 'Cadastro'],
+        ...filteredAndSortedUsers.map(u => [
+          u.full_name || 'Sem nome',
+          u.email,
+          u.role,
+          u.is_active ? 'Ativo' : 'Inativo',
+          String(u.operations_count || 0),
+          u.last_login ? new Date(u.last_login).toLocaleString('pt-BR') : '-',
+          new Date(u.created_at).toLocaleString('pt-BR')
+        ])
+      ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `usuarios_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: 'Exportado', description: 'Lista exportada para CSV' });
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Erro ao exportar', variant: 'destructive' });
+    }
+  };
+
+  // Exportar PDF
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.text('Relatório de Usuários', 14, 22);
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
+      doc.text(`Total: ${filteredAndSortedUsers.length} usuários`, 14, 36);
+
+      autoTable(doc, {
+        startY: 42,
+        head: [['Nome', 'Email', 'Role', 'Status', 'Ops', 'Último Login']],
+        body: filteredAndSortedUsers.map(u => [
+          u.full_name || 'Sem nome',
+          u.email,
+          u.role,
+          u.is_active ? 'Ativo' : 'Inativo',
+          String(u.operations_count || 0),
+          u.last_login ? new Date(u.last_login).toLocaleDateString('pt-BR') : '-'
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] }
+      });
+
+      doc.save(`usuarios_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: 'Exportado', description: 'Relatório PDF gerado' });
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Erro ao gerar PDF', variant: 'destructive' });
+    }
+  };
 
   const toggleUserStatus = async (targetUserId: string, currentStatus: boolean) => {
     try {
@@ -191,7 +366,6 @@ const Users = ({ className, ...props }: UsersProps) => {
 
       if (error) throw error;
 
-      // Log ação administrativa
       await logAdminAction(userId, 'toggle_user_status', 'user', targetUserId, {
         newStatus: !currentStatus,
       });
@@ -202,7 +376,7 @@ const Users = ({ className, ...props }: UsersProps) => {
       });
 
       loadUsers();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o status',
@@ -214,14 +388,13 @@ const Users = ({ className, ...props }: UsersProps) => {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setEditName(user.full_name || '');
-    setEditRole(user.role as 'founder' | 'user');
+    setEditRole(user.role);
   };
 
   const saveUserEdit = async () => {
     if (!editingUser) return;
 
     try {
-      // Verificar se é o último founder
       if (editRole !== 'founder' && editingUser.role === 'founder') {
         const { count } = await supabase
           .from('profiles')
@@ -242,7 +415,6 @@ const Users = ({ className, ...props }: UsersProps) => {
         full_name: editName || null,
       };
 
-      // Só permitir mudança de role se for founder
       if (userRole === 'founder' && editRole !== editingUser.role) {
         updates.role = editRole;
       }
@@ -254,7 +426,6 @@ const Users = ({ className, ...props }: UsersProps) => {
 
       if (error) throw error;
 
-      // Log ação administrativa
       if (updates.role) {
         await logAdminAction(userId, 'change_user_role', 'user', editingUser.id, {
           oldRole: editingUser.role,
@@ -269,10 +440,11 @@ const Users = ({ className, ...props }: UsersProps) => {
 
       setEditingUser(null);
       loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Não foi possível atualizar o usuário';
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível atualizar o usuário',
+        description: message,
         variant: 'destructive',
       });
     }
@@ -280,7 +452,6 @@ const Users = ({ className, ...props }: UsersProps) => {
 
   const deleteUser = async (targetUserId: string, targetUserEmail: string, targetUserRole: string) => {
     try {
-      // Verificar se é o último founder
       if (targetUserRole === 'founder') {
         const { count } = await supabase
           .from('profiles')
@@ -297,12 +468,8 @@ const Users = ({ className, ...props }: UsersProps) => {
         }
       }
 
-      // Usar Edge Function para deletar usuário com segurança
       const { data, error } = await supabase.functions.invoke('delete-user', {
-        body: {
-          targetUserId,
-          targetUserEmail,
-        },
+        body: { targetUserId, targetUserEmail },
       });
 
       if (error) {
@@ -313,7 +480,6 @@ const Users = ({ className, ...props }: UsersProps) => {
         throw new Error(data.error || 'Erro ao deletar usuário');
       }
 
-      // Log ação administrativa
       await logAdminAction(userId, 'modify_user', 'user', targetUserId, {
         action: 'delete',
         email: targetUserEmail,
@@ -325,17 +491,19 @@ const Users = ({ className, ...props }: UsersProps) => {
       });
 
       loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao deletar usuário:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível deletar o usuário';
       toast({
         title: 'Erro',
-        description: error.message || 'Não foi possível deletar o usuário',
+        description: message,
         variant: 'destructive',
       });
     }
   };
 
   const activeUsers = users.filter(u => u.is_active).length;
+  const totalOperationsByUsers = users.reduce((sum, u) => sum + (u.operations_count || 0), 0);
 
   return (
     <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
@@ -345,14 +513,20 @@ const Users = ({ className, ...props }: UsersProps) => {
           <h1 className="text-2xl font-bold text-foreground mb-1">Usuários</h1>
           <p className="text-muted-foreground text-sm">Gerencie todos os usuários do sistema</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-secondary bg-secondary/10 px-3 py-1.5 rounded-full">
-          <Shield className="w-3 h-3" />
-          <span className="font-medium">Admin</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          <div className="flex items-center gap-2 text-sm text-secondary bg-secondary/10 px-3 py-1.5 rounded-full">
+            <Shield className="w-3 h-3" />
+            <span className="font-medium">Admin</span>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card className="metric-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
@@ -389,11 +563,23 @@ const Users = ({ className, ...props }: UsersProps) => {
             <TrendingUp className="w-5 h-5 text-accent" />
           </CardContent>
         </Card>
+        <Card className="metric-card">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase">Média Ops/User</p>
+              <p className="text-2xl font-bold text-blue-500">
+                {users.length > 0 ? (totalOperationsByUsers / users.length).toFixed(1) : 0}
+              </p>
+            </div>
+            <BarChart3 className="w-5 h-5 text-blue-500" />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters and Search */}
       <Card className="metric-card">
         <CardContent className="p-4 space-y-4">
+          {/* Linha 1: Busca e filtros básicos */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -407,7 +593,7 @@ const Users = ({ className, ...props }: UsersProps) => {
                 className="pl-10"
               />
             </div>
-            <Select value={roleFilter} onValueChange={(v: any) => {
+            <Select value={roleFilter} onValueChange={(v: 'all' | 'founder' | 'user') => {
               setRoleFilter(v);
               setCurrentPage(1);
             }}>
@@ -420,7 +606,7 @@ const Users = ({ className, ...props }: UsersProps) => {
                 <SelectItem value="user">User</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={(v: any) => {
+            <Select value={statusFilter} onValueChange={(v: 'all' | 'active' | 'inactive') => {
               setStatusFilter(v);
               setCurrentPage(1);
             }}>
@@ -433,12 +619,55 @@ const Users = ({ className, ...props }: UsersProps) => {
                 <SelectItem value="inactive">Inativos</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Linha 2: Filtro de data */}
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-muted-foreground" />
+              <Select value={dateFilterType} onValueChange={(v: 'created' | 'login') => setDateFilterType(v)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created">Data Cadastro</SelectItem>
+                  <SelectItem value="login">Último Login</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">De:</Label>
+              <Input
+                type="date"
+                value={dateFilterStart}
+                onChange={(e) => setDateFilterStart(e.target.value)}
+                className="w-[150px]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Até:</Label>
+              <Input
+                type="date"
+                value={dateFilterEnd}
+                onChange={(e) => setDateFilterEnd(e.target.value)}
+                className="w-[150px]"
+              />
+            </div>
+            {(dateFilterStart || dateFilterEnd) && (
+              <Button variant="ghost" size="sm" onClick={() => { setDateFilterStart(''); setDateFilterEnd(''); }}>
+                Limpar datas
+              </Button>
+            )}
+          </div>
+
+          {/* Linha 3: Ordenação e exportação */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-between">
             <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v: string) => {
               const [field, order] = v.split('-');
-              setSortBy(field as any);
+              setSortBy(field as 'name' | 'email' | 'created_at' | 'last_login' | 'operations');
               setSortOrder(order as 'asc' | 'desc');
             }}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[200px]">
                 <ArrowUpDown className="w-4 h-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
@@ -449,18 +678,65 @@ const Users = ({ className, ...props }: UsersProps) => {
                 <SelectItem value="name-desc">Nome Z-A</SelectItem>
                 <SelectItem value="email-asc">Email A-Z</SelectItem>
                 <SelectItem value="last_login-desc">Último login</SelectItem>
+                <SelectItem value="operations-desc">Mais operações</SelectItem>
+                <SelectItem value="operations-asc">Menos operações</SelectItem>
               </SelectContent>
             </Select>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={exportToCSV}>
+                <Download className="w-4 h-4 mr-2" />
+                CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportToPDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Bulk Actions */}
+      {selectedUsers.size > 0 && (
+        <Card className="metric-card border-primary/50 bg-primary/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <span className="text-sm font-medium">
+              {selectedUsers.size} usuário(s) selecionado(s)
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => bulkToggleStatus(true)}>
+                <UserCheck className="w-4 h-4 mr-2" />
+                Ativar todos
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => bulkToggleStatus(false)}>
+                <UserX className="w-4 h-4 mr-2" />
+                Desativar todos
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedUsers(new Set())}>
+                Limpar seleção
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Users List */}
       <Card className="metric-card">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">
-            Usuários Cadastrados ({filteredAndSortedUsers.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium">
+              Usuários Cadastrados ({filteredAndSortedUsers.length})
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={handleSelectAll}>
+              {selectedUsers.size === paginatedUsers.length ? (
+                <CheckSquare className="w-4 h-4 mr-2" />
+              ) : (
+                <Square className="w-4 h-4 mr-2" />
+              )}
+              {selectedUsers.size === paginatedUsers.length ? 'Desmarcar todos' : 'Selecionar todos'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -485,10 +761,16 @@ const Users = ({ className, ...props }: UsersProps) => {
                 {paginatedUsers.map((user, index) => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50 hover:border-primary/20 transition-all animate-fade-up"
+                    className={`flex items-center justify-between p-3 bg-background/50 rounded-lg border transition-all animate-fade-up ${
+                      selectedUsers.has(user.id) ? 'border-primary/50 bg-primary/5' : 'border-border/50 hover:border-primary/20'
+                    }`}
                     style={{ animationDelay: `${index * 0.02}s` }}
                   >
                     <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selectedUsers.has(user.id)}
+                        onCheckedChange={() => handleSelectUser(user.id)}
+                      />
                       <Avatar className="w-10 h-10 border border-border">
                         <AvatarImage src={user.avatar_url || undefined} />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -506,52 +788,71 @@ const Users = ({ className, ...props }: UsersProps) => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant={user.role === 'founder' ? 'default' : 'secondary'} className="text-xs">
-                        {user.role === 'founder' ? 'Founder' : 'User'}
+                    <div className="flex items-center gap-4">
+                      {/* Métricas de engajamento */}
+                      <div className="text-center px-3">
+                        <p className="text-lg font-bold text-primary">{user.operations_count || 0}</p>
+                        <p className="text-[10px] text-muted-foreground">operações</p>
+                      </div>
+                      
+                      <Badge
+                        variant={user.role === 'founder' ? 'default' : 'secondary'}
+                        className="text-[10px]"
+                      >
+                        {user.role}
                       </Badge>
-                      {userRole === 'founder' && (
+                      <Badge
+                        variant={user.is_active ? 'outline' : 'destructive'}
+                        className={`text-[10px] ${user.is_active ? 'text-emerald-500 border-emerald-500/50' : ''}`}
+                      >
+                        {user.is_active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => toggleUserStatus(user.id, user.is_active)}
+                        >
+                          {user.is_active ? (
+                            <UserX className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <UserCheck className="w-4 h-4 text-emerald-500" />
+                          )}
+                        </Button>
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => handleEditUser(user)}
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-4 h-4 text-muted-foreground" />
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Editar Usuário</DialogTitle>
                               <DialogDescription>
-                                Modifique as informações do usuário
+                                Altere os dados do usuário {editingUser?.email}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                               <div className="space-y-2">
-                                <Label>Nome Completo</Label>
+                                <Label>Nome completo</Label>
                                 <Input
                                   value={editName}
                                   onChange={(e) => setEditName(e.target.value)}
                                   placeholder="Nome do usuário"
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <Label>Email</Label>
-                                <Input
-                                  value={editingUser?.email || ''}
-                                  disabled
-                                  className="bg-muted"
-                                />
-                              </div>
-                              {editingUser && (
+                              {userRole === 'founder' && (
                                 <div className="space-y-2">
                                   <Label>Role</Label>
                                   <Select
                                     value={editRole}
                                     onValueChange={(v: 'founder' | 'user') => setEditRole(v)}
-                                    disabled={editingUser.role === 'founder' && users.filter(u => u.role === 'founder').length === 1}
                                   >
                                     <SelectTrigger>
                                       <SelectValue />
@@ -561,75 +862,42 @@ const Users = ({ className, ...props }: UsersProps) => {
                                       <SelectItem value="founder">Founder</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  {editingUser.role === 'founder' && users.filter(u => u.role === 'founder').length === 1 && (
-                                    <p className="text-xs text-muted-foreground">
-                                      Não é possível alterar o role do último founder
-                                    </p>
-                                  )}
                                 </div>
                               )}
                             </div>
-                            <DialogFooter className="flex items-center justify-between">
-                              <div>
-                                {editingUser && editingUser.role !== 'founder' && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="text-xs"
-                                      >
-                                        <Trash2 className="w-3 h-3 mr-1" />
-                                        Deletar Conta
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Deletar conta do usuário?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Esta ação não pode ser desfeita. A conta de <strong>{editingUser.email}</strong> será removida permanentemente.
-                                          <span className="block mt-2 text-destructive font-medium">
-                                            ⚠️ Todos os dados do usuário serão perdidos.
-                                          </span>
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => {
-                                            deleteUser(editingUser.id, editingUser.email, editingUser.role);
-                                            setEditingUser(null);
-                                          }}
-                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                          Deletar Permanentemente
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                )}
-                              </div>
-                              <div className="flex gap-2">
-                                <Button variant="outline" onClick={() => setEditingUser(null)}>
-                                  Cancelar
-                                </Button>
-                                <Button onClick={saveUserEdit}>
-                                  Salvar
-                                </Button>
-                              </div>
+                            <DialogFooter>
+                              <Button onClick={saveUserEdit}>Salvar</Button>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
-                      )}
-                      <Button
-                        size="sm"
-                        variant={user.is_active ? 'ghost' : 'default'}
-                        onClick={() => toggleUserStatus(user.id, user.is_active)}
-                        disabled={user.role === 'founder'}
-                        className={user.is_active ? 'text-destructive hover:bg-destructive/10' : 'btn-primary'}
-                      >
-                        {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                      </Button>
+                        {user.id !== userId && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Deletar usuário?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação é irreversível. Todos os dados de {user.email} serão
+                                  removidos permanentemente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteUser(user.id, user.email, user.role)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Deletar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -637,26 +905,47 @@ const Users = ({ className, ...props }: UsersProps) => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    Página {currentPage} de {totalPages} ({filteredAndSortedUsers.length} total)
-                  </div>
-                  <div className="flex gap-2">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground">
+                    Mostrando {(currentPage - 1) * itemsPerPage + 1} a{' '}
+                    {Math.min(currentPage * itemsPerPage, filteredAndSortedUsers.length)} de{' '}
+                    {filteredAndSortedUsers.length}
+                  </p>
+                  <div className="flex gap-1">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      onClick={() => setCurrentPage(1)}
                       disabled={currentPage === 1}
                     >
-                      Anterior
+                      {'<<'}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      {'<'}
+                    </Button>
+                    <span className="px-3 py-1 text-sm">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
                     >
-                      Próxima
+                      {'>'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                    >
+                      {'>>'}
                     </Button>
                   </div>
                 </div>
