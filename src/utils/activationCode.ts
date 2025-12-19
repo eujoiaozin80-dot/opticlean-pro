@@ -51,37 +51,33 @@ export async function validateActivationCode(code: string): Promise<ActivationCo
 
 /**
  * Marca código como usado após registro bem-sucedido
+ * Usa RPC com security definer para bypass de RLS
  */
 export async function markActivationCodeAsUsed(
   codeId: string,
-  userId: string
-): Promise<{ success: boolean; error?: string }> {
+  usedById: string
+): Promise<{ success: boolean; error?: string; expiresAt?: string }> {
   try {
-    const expiresAt = new Date();
-    // Buscar validade do código
-    const { data: codeData } = await supabase
-      .from('activation_codes')
-      .select('validity_days')
-      .eq('id', codeId)
-      .single();
+    const { data, error } = await supabase.rpc('use_activation_code', {
+      p_code_id: codeId,
+      p_user_id: usedById,
+    });
 
-    if (codeData?.validity_days) {
-      expiresAt.setDate(expiresAt.getDate() + codeData.validity_days);
+    if (error) {
+      console.error('Erro ao marcar código como usado:', error);
+      return { success: false, error: error.message };
     }
 
-    const { error } = await supabase
-      .from('activation_codes')
-      .update({
-        is_used: true,
-        used_by: userId,
-        used_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-      })
-      .eq('id', codeId);
+    const result = data as { success: boolean; error?: string; expires_at?: string };
 
-    if (error) throw error;
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
 
-    return { success: true };
+    return { 
+      success: true,
+      expiresAt: result.expires_at 
+    };
   } catch (error) {
     console.error('Erro ao marcar código como usado:', error);
     return {
