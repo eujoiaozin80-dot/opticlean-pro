@@ -7,10 +7,11 @@ export type AdminAction =
   | 'modify_user'
   | 'change_user_role'
   | 'toggle_user_status'
+  | 'bulk_toggle_status'
   | 'export_codes'
   | 'bulk_delete_codes';
 
-export type TargetType = 'code' | 'user' | 'codes';
+export type TargetType = 'code' | 'user' | 'codes' | 'users';
 
 export interface AdminLog {
   id: string;
