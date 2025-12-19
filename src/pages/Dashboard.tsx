@@ -3,6 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ProgressDialog } from '@/components/ProgressDialog';
+import { QuickNotes } from '@/components/QuickNotes';
+import { ResourcePredictions } from '@/components/ResourcePredictions';
+import { ProcessShortcuts } from '@/components/ProcessShortcuts';
 import { 
   Trash2, 
   Zap, 
