@@ -18,6 +18,7 @@ import { z } from "zod";
 import { AUTH_CONFIG } from "@/config/auth";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
 import { usePasswordStrength } from "@/hooks/usePasswordStrength";
+import { useLoginHistory } from "@/hooks/useLoginHistory";
 import { validateActivationCode, markActivationCodeAsUsed } from "@/utils/activationCode";
 import logoOpticlean from "@/assets/logo-opticlean.png";
 
@@ -169,6 +170,9 @@ export default function Login({ onLogin }: LoginProps) {
 
   // Rate limiting
   const { canAttempt, remainingAttempts, timeUntilReset, recordAttempt, resetAttempts } = useLoginAttempts();
+
+  // Login history
+  const { logLogin } = useLoginHistory();
 
   // Timer visual para tentativas
   useEffect(() => {
@@ -393,6 +397,9 @@ export default function Login({ onLogin }: LoginProps) {
           }
         }
 
+        // Log login success
+        logLogin(authData.user.id, email, 'success');
+
         onLogin(authData.user.id, profile?.role || 'user', profile?.full_name || undefined);
       } 
       // REGISTRO
@@ -439,6 +446,9 @@ export default function Login({ onLogin }: LoginProps) {
             description: "Bem-vindo ao OptiClean Pro",
           });
 
+          // Log first login
+          logLogin(authData.user.id, email, 'success');
+
           onLogin(authData.user.id, profile?.role || 'user', profile?.full_name || undefined);
         } else {
           // Founder não precisa de código
@@ -458,6 +468,9 @@ export default function Login({ onLogin }: LoginProps) {
             .select("role, full_name, email")
             .eq("id", authData.user.id)
             .single();
+
+          // Log first login (founder)
+          logLogin(authData.user.id, email, 'success');
 
           onLogin(authData.user.id, profile?.role || 'user', profile?.full_name || undefined);
         }
