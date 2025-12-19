@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw } from 'lucide-react';
+import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OutletContext } from '@/types/outlet-context';
@@ -15,6 +15,7 @@ import UserPanel from '@/components/UserPanel';
 import { logAdminAction, getAdminLogs, type AdminLog } from '@/utils/adminLogs';
 import { exportProcessesToCSV } from '@/utils/export';
 import { Badge } from '@/components/ui/badge';
+import { LoginHistoryPanel } from '@/components/LoginHistoryPanel';
 
 interface ActivationCode {
   id: string;
@@ -521,6 +522,10 @@ const Admin = ({ className, ...props }: AdminProps) => {
             <Key className="w-4 h-4" />
             Códigos
           </TabsTrigger>
+          <TabsTrigger value="logins" className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Histórico de Logins
+          </TabsTrigger>
           <TabsTrigger value="local" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             Licença Local
@@ -928,6 +933,11 @@ const Admin = ({ className, ...props }: AdminProps) => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Tab: Histórico de Logins */}
+        <TabsContent value="logins">
+          <LoginHistoryPanel isAdmin={true} />
         </TabsContent>
 
         {/* Tab: Licença Local (Electron) */}

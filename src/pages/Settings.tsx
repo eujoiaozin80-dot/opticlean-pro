@@ -12,11 +12,12 @@ import { useOperationHistory } from '@/hooks/useOperationHistory';
 import { useSystemStats } from '@/hooks/useSystemStats';
 import { generatePdfReport } from '@/utils/generatePdfReport';
 import { ScheduledTasksPanel } from '@/components/ScheduledTasksPanel';
+import { LoginHistoryPanel } from '@/components/LoginHistoryPanel';
 import { useToast } from '@/hooks/use-toast';
 import { 
   User, Settings2, Sun, Moon, Bell, Download, History, 
   Trash2, Shield, Clock, CheckCircle, AlertCircle, Loader2,
-  FileText, Calendar, RefreshCw
+  FileText, Calendar, RefreshCw, Lock
 } from 'lucide-react';
 import { UpdateDialog } from '@/components/UpdateDialog';
 
@@ -98,6 +99,7 @@ const Settings = ({ className, ...props }: SettingsProps) => {
         <TabsList className="glass-strong border border-border/50">
           <TabsTrigger value="profile" className="flex items-center gap-2"><User className="w-4 h-4" />Perfil</TabsTrigger>
           <TabsTrigger value="preferences" className="flex items-center gap-2"><Settings2 className="w-4 h-4" />Preferências</TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2"><Lock className="w-4 h-4" />Segurança</TabsTrigger>
           <TabsTrigger value="schedule" className="flex items-center gap-2"><Calendar className="w-4 h-4" />Agendamento</TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2"><History className="w-4 h-4" />Histórico</TabsTrigger>
         </TabsList>
@@ -171,6 +173,10 @@ const Settings = ({ className, ...props }: SettingsProps) => {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <LoginHistoryPanel userId={userId} />
         </TabsContent>
 
         <TabsContent value="schedule"><ScheduledTasksPanel /></TabsContent>
