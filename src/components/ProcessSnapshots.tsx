@@ -21,7 +21,13 @@ interface ProcessSnapshot {
 }
 
 interface ProcessSnapshotsProps {
-  currentProcesses: Array<{
+  currentProcesses?: Array<{
+    pid: number;
+    name: string;
+    cpuPercent: number;
+    memPercent: number;
+  }>;
+  processes?: Array<{
     pid: number;
     name: string;
     cpuPercent: number;
@@ -29,7 +35,8 @@ interface ProcessSnapshotsProps {
   }>;
 }
 
-export const ProcessSnapshots = ({ currentProcesses }: ProcessSnapshotsProps) => {
+export const ProcessSnapshots = ({ currentProcesses, processes }: ProcessSnapshotsProps) => {
+  const processData = currentProcesses || processes || [];
   const [snapshots, setSnapshots] = useState<ProcessSnapshot[]>([]);
   const [viewingSnapshot, setViewingSnapshot] = useState<ProcessSnapshot | null>(null);
   const { toast } = useToast();
@@ -50,14 +57,14 @@ export const ProcessSnapshots = ({ currentProcesses }: ProcessSnapshotsProps) =>
     const snapshot: ProcessSnapshot = {
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
-      processCount: currentProcesses.length,
-      totalCpu: currentProcesses.reduce((sum, p) => sum + p.cpuPercent, 0),
-      totalMemory: currentProcesses.reduce((sum, p) => sum + p.memPercent, 0),
-      processes: currentProcesses.slice(0, 50), // Top 50
+      processCount: processData.length,
+      totalCpu: processData.reduce((sum, p) => sum + p.cpuPercent, 0),
+      totalMemory: processData.reduce((sum, p) => sum + p.memPercent, 0),
+      processes: processData.slice(0, 50), // Top 50
     };
 
     saveSnapshots([snapshot, ...snapshots].slice(0, 10)); // Keep last 10
-    toast({ title: 'Snapshot Capturado', description: `${currentProcesses.length} processos salvos` });
+    toast({ title: 'Snapshot Capturado', description: `${processData.length} processos salvos` });
   };
 
   const deleteSnapshot = (id: string) => {

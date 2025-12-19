@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSystemStats } from '@/hooks/useSystemStats';
 import { useToast } from '@/hooks/use-toast';
+import { NetworkMonitorCard } from '@/components/NetworkMonitorCard';
+import { DiskIOCard } from '@/components/DiskIOCard';
+import { PerformanceProfiles } from '@/components/PerformanceProfiles';
 import { 
   Cpu, 
   MemoryStick, 
@@ -23,7 +26,8 @@ import {
   AlertTriangle,
   TrendingUp,
   Bell,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -239,6 +243,14 @@ const Monitoring = ({ className, ...props }: MonitoringProps) => {
           <TabsTrigger value="charts" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Gráficos
+          </TabsTrigger>
+          <TabsTrigger value="network" className="flex items-center gap-2">
+            <Network className="w-4 h-4" />
+            Rede & Disco
+          </TabsTrigger>
+          <TabsTrigger value="profiles" className="flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Perfis
           </TabsTrigger>
           <TabsTrigger value="processes" className="flex items-center gap-2">
             <Cpu className="w-4 h-4" />
@@ -584,6 +596,19 @@ const Monitoring = ({ className, ...props }: MonitoringProps) => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Network & Disk Tab */}
+        <TabsContent value="network" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <NetworkMonitorCard />
+            <DiskIOCard />
+          </div>
+        </TabsContent>
+
+        {/* Performance Profiles Tab */}
+        <TabsContent value="profiles" className="space-y-4">
+          <PerformanceProfiles />
         </TabsContent>
 
         {/* Processes Tab */}

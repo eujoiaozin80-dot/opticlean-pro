@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Activity, LogIn, LogOut, Settings, Key, UserPlus, UserMinus, Shield } from 'lucide-react';
+import { Activity, LogIn, LogOut, Settings, Key, UserPlus, UserMinus, Shield, Clock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Operation {
   id: string;
@@ -22,12 +23,28 @@ interface LoginHistory {
 }
 
 interface ActivityTimelineProps {
-  operations: Operation[];
-  loginHistory: LoginHistory[];
-  userId: string;
+  operations?: Operation[];
+  loginHistory?: LoginHistory[];
+  userId?: string;
 }
 
-export const ActivityTimeline = ({ operations, loginHistory, userId }: ActivityTimelineProps) => {
+export const ActivityTimeline = ({ operations: propOperations, loginHistory: propLoginHistory, userId }: ActivityTimelineProps) => {
+  const [operations, setOperations] = useState<Operation[]>(propOperations || []);
+  const [loginHistory, setLoginHistory] = useState<LoginHistory[]>(propLoginHistory || []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!propOperations) {
+        const { data } = await supabase.from('operation_history').select('*').order('created_at', { ascending: false }).limit(50);
+        if (data) setOperations(data);
+      }
+      if (!propLoginHistory) {
+        const { data } = await supabase.from('login_history').select('*').order('created_at', { ascending: false }).limit(50);
+        if (data) setLoginHistory(data);
+      }
+    };
+    fetchData();
+  }, [propOperations, propLoginHistory]);
   const timeline = useMemo(() => {
     // Combinar e ordenar todas as atividades
     const activities: Array<{

@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, TrendingUp, Users, Key, Calendar, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ActivationCode {
   id: string;
@@ -14,12 +15,23 @@ interface ActivationCode {
 }
 
 interface UsageAnalyticsProps {
-  codes: ActivationCode[];
+  codes?: ActivationCode[];
 }
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export const UsageAnalytics = ({ codes }: UsageAnalyticsProps) => {
+export const UsageAnalytics = ({ codes: propCodes }: UsageAnalyticsProps) => {
+  const [codes, setCodes] = useState<ActivationCode[]>(propCodes || []);
+
+  useEffect(() => {
+    if (!propCodes) {
+      const fetchCodes = async () => {
+        const { data } = await supabase.from('activation_codes').select('*');
+        if (data) setCodes(data);
+      };
+      fetchCodes();
+    }
+  }, [propCodes]);
   const analytics = useMemo(() => {
     const now = new Date();
     

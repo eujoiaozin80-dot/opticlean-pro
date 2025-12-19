@@ -625,6 +625,16 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
         </Card>
       </div>
 
+      {/* Quick Notes, Resource Predictions, Process Shortcuts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <QuickNotes />
+        <ResourcePredictions 
+          cpuHistory={cpuHistory}
+          memoryHistory={memoryHistory}
+        />
+        <ProcessShortcuts />
+      </div>
+
       {/* Link to Full Monitoring */}
       <Card className="metric-card border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
         <CardContent className="p-4">

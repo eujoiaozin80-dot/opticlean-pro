@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw, Lock, AlertTriangle } from 'lucide-react';
+import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw, Lock, AlertTriangle, BarChart3, Layers } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OutletContext } from '@/types/outlet-context';
@@ -17,6 +17,8 @@ import { exportProcessesToCSV } from '@/utils/export';
 import { Badge } from '@/components/ui/badge';
 import { LoginHistoryPanel } from '@/components/LoginHistoryPanel';
 import { ExpiringCodesAlert } from '@/components/ExpiringCodesAlert';
+import { CodeTemplates } from '@/components/CodeTemplates';
+import { UsageAnalytics } from '@/components/UsageAnalytics';
 
 interface ActivationCode {
   id: string;
@@ -523,6 +525,14 @@ const Admin = ({ className, ...props }: AdminProps) => {
             <Key className="w-4 h-4" />
             Códigos
           </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <Layers className="w-4 h-4" />
+            Templates
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </TabsTrigger>
           <TabsTrigger value="logins" className="flex items-center gap-2">
             <Lock className="w-4 h-4" />
             Histórico de Logins
@@ -937,6 +947,16 @@ const Admin = ({ className, ...props }: AdminProps) => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Tab: Templates */}
+        <TabsContent value="templates">
+          <CodeTemplates userId={userId} onCodeCreated={() => loadActivationCodes(true)} />
+        </TabsContent>
+
+        {/* Tab: Analytics */}
+        <TabsContent value="analytics">
+          <UsageAnalytics />
         </TabsContent>
 
         {/* Tab: Histórico de Logins */}
