@@ -177,6 +177,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      use_activation_code: {
+        Args: { p_code_id: string; p_user_id: string }
+        Returns: Json
+      }
       validate_activation_code: {
         Args: { code_to_check: string }
         Returns: Json
