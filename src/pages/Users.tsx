@@ -38,7 +38,7 @@ interface User {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  role: string;
+  role: 'founder' | 'user';
   is_active: boolean;
   last_login: string | null;
   created_at: string;
@@ -64,11 +64,6 @@ const Users = ({ className, ...props }: UsersProps) => {
   const [editRole, setEditRole] = useState<'founder' | 'user'>('user');
   const itemsPerPage = 20;
   const { toast } = useToast();
-
-  useEffect(() => {
-    loadUsers();
-    loadStats();
-  }, []);
 
   const loadStats = async () => {
     try {
@@ -102,7 +97,7 @@ const Users = ({ className, ...props }: UsersProps) => {
 
       if (error) throw error;
       setUsers(data || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao carregar usuários:', error);
       toast({
         title: 'Erro',
@@ -113,6 +108,13 @@ const Users = ({ className, ...props }: UsersProps) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadUsers();
+    loadStats();
+  }, []);
+
+  // Filtros e ordenação
 
   // Filtros e ordenação
   const filteredAndSortedUsers = useMemo(() => {
@@ -236,7 +238,7 @@ const Users = ({ className, ...props }: UsersProps) => {
         }
       }
 
-      const updates: any = {
+      const updates: { full_name: string | null; role?: 'founder' | 'user' } = {
         full_name: editName || null,
       };
 
