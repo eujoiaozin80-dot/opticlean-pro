@@ -295,23 +295,20 @@ const Users = ({ className, ...props }: UsersProps) => {
         }
       }
 
-      // Deletar perfil (cascade deletará o usuário do auth.users)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', targetUserId);
+      // Usar Edge Function para deletar usuário com segurança
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: {
+          targetUserId,
+          targetUserEmail,
+        },
+      });
 
-      if (profileError) throw profileError;
+      if (error) {
+        throw new Error(error.message || 'Erro ao deletar usuário');
+      }
 
-      // Tentar deletar do auth.users também (requer admin API)
-      // Nota: Isso pode não funcionar sem admin API, mas o cascade deve funcionar
-      try {
-        const { error: authError } = await supabase.auth.admin.deleteUser(targetUserId);
-        if (authError) {
-          console.warn('Erro ao deletar do auth (pode precisar de admin API):', authError);
-        }
-      } catch (e) {
-        console.warn('Não foi possível deletar do auth diretamente:', e);
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao deletar usuário');
       }
 
       // Log ação administrativa
@@ -327,6 +324,7 @@ const Users = ({ className, ...props }: UsersProps) => {
 
       loadUsers();
     } catch (error: any) {
+      console.error('Erro ao deletar usuário:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível deletar o usuário',
