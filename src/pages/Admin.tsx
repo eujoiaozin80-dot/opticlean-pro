@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw, Lock } from 'lucide-react';
+import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw, Lock, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OutletContext } from '@/types/outlet-context';
@@ -16,6 +16,7 @@ import { logAdminAction, getAdminLogs, type AdminLog } from '@/utils/adminLogs';
 import { exportProcessesToCSV } from '@/utils/export';
 import { Badge } from '@/components/ui/badge';
 import { LoginHistoryPanel } from '@/components/LoginHistoryPanel';
+import { ExpiringCodesAlert } from '@/components/ExpiringCodesAlert';
 
 interface ActivationCode {
   id: string;
@@ -534,6 +535,9 @@ const Admin = ({ className, ...props }: AdminProps) => {
 
         {/* Tab: Códigos */}
         <TabsContent value="codes" className="space-y-4">
+          {/* Expiring Codes Alert */}
+          <ExpiringCodesAlert userId={userId} onRefresh={() => loadActivationCodes(true)} />
+          
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <Card className="metric-card">
