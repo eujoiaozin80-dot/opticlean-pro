@@ -3,15 +3,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { HardDrive, Database, Folder, FileText, ArrowDown, ArrowUp } from 'lucide-react';
+import { useSystemStats } from '@/hooks/useSystemStats';
 
 interface DiskIOCardProps {
-  total: number;
-  used: number;
-  free: number;
-  formatBytes: (bytes: number) => string;
+  total?: number;
+  used?: number;
+  free?: number;
+  formatBytes?: (bytes: number) => string;
 }
 
-export const DiskIOCard = ({ total, used, free, formatBytes }: DiskIOCardProps) => {
+export const DiskIOCard = ({ total: propTotal, used: propUsed, free: propFree, formatBytes: propFormatBytes }: DiskIOCardProps) => {
+  const { disk, formatBytes: statsFormatBytes } = useSystemStats();
+  
+  const total = propTotal ?? disk.total;
+  const used = propUsed ?? disk.used;
+  const free = propFree ?? disk.free;
+  const formatBytes = propFormatBytes ?? statsFormatBytes;
   const [ioStats, setIOStats] = useState({
     readSpeed: 0,
     writeSpeed: 0,

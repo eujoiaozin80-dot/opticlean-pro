@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Network, ArrowDown, ArrowUp, Wifi, WifiOff, Globe, Activity } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
+import { useSystemStats } from '@/hooks/useSystemStats';
 
 interface NetworkHistoryPoint {
   time: string;
@@ -11,20 +12,27 @@ interface NetworkHistoryPoint {
 }
 
 interface NetworkMonitorCardProps {
-  rx: number;
-  tx: number;
-  interfaceName: string;
-  networkHistory: NetworkHistoryPoint[];
-  isConnected: boolean;
+  rx?: number;
+  tx?: number;
+  interfaceName?: string;
+  networkHistory?: NetworkHistoryPoint[];
+  isConnected?: boolean;
 }
 
 export const NetworkMonitorCard = ({
-  rx,
-  tx,
-  interfaceName,
-  networkHistory,
-  isConnected
+  rx: propRx,
+  tx: propTx,
+  interfaceName: propInterfaceName,
+  networkHistory: propNetworkHistory,
+  isConnected: propIsConnected
 }: NetworkMonitorCardProps) => {
+  const { network, networkHistory: statsHistory, connectionStatus } = useSystemStats();
+  
+  const rx = propRx ?? network.rx;
+  const tx = propTx ?? network.tx;
+  const interfaceName = propInterfaceName ?? network.interface;
+  const networkHistory = propNetworkHistory ?? statsHistory;
+  const isConnected = propIsConnected ?? connectionStatus === 'connected';
   const totalSpeed = rx + tx;
   const maxSpeed = Math.max(...networkHistory.map(h => h.rx + h.tx), 1000);
   const usagePercent = Math.min((totalSpeed / maxSpeed) * 100, 100);

@@ -7,7 +7,8 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { 
   X, Search, Activity, Wifi, WifiOff, RefreshCw, Cpu, 
-  Download, Filter, Shield, ShieldOff, History as HistoryIcon, Trash2, CheckSquare, Square
+  Download, Filter, Shield, ShieldOff, History as HistoryIcon, Trash2, CheckSquare, Square,
+  Camera, Gauge
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useProcesses } from '@/hooks/useProcesses';
@@ -16,6 +17,8 @@ import { useProcessHistory } from '@/hooks/useProcessHistory';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { exportProcessesToCSV, exportProcessesToJSON } from '@/utils/export';
 import { ProcessSkeletonList } from '@/components/ProcessSkeleton';
+import { ProcessPriorityManager } from '@/components/ProcessPriorityManager';
+import { ProcessSnapshots } from '@/components/ProcessSnapshots';
 import { PROCESS_CONSTANTS } from '@/constants/processes';
 import type { ProcessFilter } from '@/types/process';
 import {
@@ -631,6 +634,12 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Priority Manager and Snapshots */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ProcessPriorityManager />
+        <ProcessSnapshots processes={filteredProcesses} />
+      </div>
 
       {/* Dialog de Confirmação */}
       <AlertDialog open={!!processToKill} onOpenChange={(open) => !open && setProcessToKill(null)}>

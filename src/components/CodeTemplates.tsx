@@ -16,7 +16,9 @@ interface CodeTemplate {
 }
 
 interface CodeTemplatesProps {
-  onGenerateWithTemplate: (template: CodeTemplate) => void;
+  userId?: string;
+  onGenerateWithTemplate?: (template: CodeTemplate) => void;
+  onCodeCreated?: () => void;
 }
 
 const DEFAULT_TEMPLATES: CodeTemplate[] = [
@@ -26,7 +28,7 @@ const DEFAULT_TEMPLATES: CodeTemplate[] = [
   { id: '4', name: 'Vitalício', prefix: 'VIP', validityDays: 36500, description: 'Acesso vitalício' },
 ];
 
-export const CodeTemplates = ({ onGenerateWithTemplate }: CodeTemplatesProps) => {
+export const CodeTemplates = ({ onGenerateWithTemplate, onCodeCreated }: CodeTemplatesProps) => {
   const [templates, setTemplates] = useState<CodeTemplate[]>(() => {
     const saved = localStorage.getItem('code_templates');
     return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;

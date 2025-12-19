@@ -27,16 +27,19 @@ import {
   AlertDialogTrigger 
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users as UsersIcon, Shield, UserCheck, UserX, Calendar, Activity, TrendingUp, 
   Search, Edit, ArrowUpDown, Trash2, Download, FileText, CheckSquare, Square,
-  CalendarDays, BarChart3, RefreshCw
+  CalendarDays, BarChart3, RefreshCw, GitCompare, Clock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OutletContext } from '@/types/outlet-context';
 import { logAdminAction } from '@/utils/adminLogs';
 import { Badge } from '@/components/ui/badge';
+import { ActivityTimeline } from '@/components/ActivityTimeline';
+import { UserComparison } from '@/components/UserComparison';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -525,6 +528,25 @@ const Users = ({ className, ...props }: UsersProps) => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <Tabs defaultValue="users" className="space-y-4">
+        <TabsList className="glass-strong border border-border/50">
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <UsersIcon className="w-4 h-4" />
+            Usuários
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Timeline
+          </TabsTrigger>
+          <TabsTrigger value="comparison" className="flex items-center gap-2">
+            <GitCompare className="w-4 h-4" />
+            Comparação
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-4">
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card className="metric-card">
@@ -954,6 +976,19 @@ const Users = ({ className, ...props }: UsersProps) => {
           )}
         </CardContent>
       </Card>
+
+        </TabsContent>
+
+        {/* Tab: Timeline */}
+        <TabsContent value="timeline">
+          <ActivityTimeline />
+        </TabsContent>
+
+        {/* Tab: Comparison */}
+        <TabsContent value="comparison">
+          <UserComparison users={users} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

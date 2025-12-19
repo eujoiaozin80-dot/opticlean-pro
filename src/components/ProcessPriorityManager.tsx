@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Gauge, AlertTriangle } from 'lucide-react';
+import { Gauge, AlertTriangle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProcessPriorityManagerProps {
-  pid: number;
-  name: string;
+  pid?: number;
+  name?: string;
   currentPriority?: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const PRIORITIES = [
@@ -27,12 +27,16 @@ export const ProcessPriorityManager = ({ pid, name, currentPriority = 'normal', 
   const { toast } = useToast();
 
   const handleUpdatePriority = async () => {
+    if (!pid || !name) {
+      toast({ title: 'Informação', description: 'Selecione um processo para alterar a prioridade', variant: 'default' });
+      return;
+    }
     setIsUpdating(true);
     try {
       if (typeof window !== 'undefined' && (window as any).electronAPI) {
         await (window as any).electronAPI.setProcessPriority(pid, priority);
         toast({ title: 'Prioridade Atualizada', description: `${name} agora tem prioridade ${PRIORITIES.find(p => p.value === priority)?.label}` });
-        onClose();
+        onClose?.();
       } else {
         toast({ title: 'Modo Desktop Necessário', description: 'Execute o .exe para alterar prioridade', variant: 'default' });
       }
@@ -43,8 +47,39 @@ export const ProcessPriorityManager = ({ pid, name, currentPriority = 'normal', 
     }
   };
 
+  // If no process selected, show info card
+  if (!pid || !name) {
+    return (
+      <Card className="metric-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Gauge className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Gerenciador de Prioridade</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center p-4 rounded-lg bg-muted/30">
+            <Info className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Selecione um processo na lista para gerenciar sua prioridade
+            </p>
+          </div>
+          <div className="mt-4 space-y-2">
+            <p className="text-xs text-muted-foreground font-medium">Níveis de Prioridade:</p>
+            {PRIORITIES.map((p) => (
+              <div key={p.value} className="flex items-center justify-between text-xs p-2 rounded bg-muted/20">
+                <span className={p.color}>{p.label}</span>
+                <span className="text-muted-foreground">{p.description}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="w-full max-w-md">
+    <Card className="metric-card">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Gauge className="w-5 h-5 text-primary" />
@@ -81,7 +116,7 @@ export const ProcessPriorityManager = ({ pid, name, currentPriority = 'normal', 
         )}
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <Button variant="outline" onClick={() => onClose?.()} className="flex-1">
             Cancelar
           </Button>
           <Button onClick={handleUpdatePriority} disabled={isUpdating} className="flex-1">
