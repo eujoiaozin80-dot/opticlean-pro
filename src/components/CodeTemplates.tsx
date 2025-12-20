@@ -148,7 +148,7 @@ export const CodeTemplates = ({ onGenerateWithTemplate, onCodeCreated }: CodeTem
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onGenerateWithTemplate(template)}
+                  onClick={() => onGenerateWithTemplate?.(template)}
                   className="h-7"
                 >
                   <Wand2 className="w-3 h-3 mr-1" />

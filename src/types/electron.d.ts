@@ -138,6 +138,13 @@ export interface ElectronAPI {
     updates: UpdateInfo[];
   }>;
   
+  // Otimizações específicas
+  optimizeDisk: () => Promise<{ success: boolean; error?: string; actions?: string[]; freeSpace?: number; message?: string }>;
+  optimizeNetwork: () => Promise<{ success: boolean; error?: string; actions?: string[]; message?: string }>;
+  cleanRegistry: () => Promise<{ success: boolean; error?: string; keysRemoved?: number; actions?: string[]; message?: string }>;
+  optimizeMemory: () => Promise<{ success: boolean; error?: string; freedMB?: number; memoryBefore?: number; memoryAfter?: number; message?: string }>;
+  optimizeCpu: () => Promise<{ success: boolean; error?: string; processesOptimized?: number; actions?: string[]; message?: string }>;
+  
   // Auto Updater
   checkForUpdates: () => Promise<{ success: boolean; error?: string }>;
   downloadUpdate: () => Promise<{ success: boolean; error?: string }>;

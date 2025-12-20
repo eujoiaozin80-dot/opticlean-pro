@@ -36,6 +36,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStartupPrograms: () => ipcRenderer.invoke('get-startup-programs'),
   checkUpdates: () => ipcRenderer.invoke('check-updates'),
   
+  // Otimizações específicas
+  optimizeDisk: () => ipcRenderer.invoke('optimize-disk'),
+  optimizeNetwork: () => ipcRenderer.invoke('optimize-network'),
+  cleanRegistry: () => ipcRenderer.invoke('clean-registry'),
+  optimizeMemory: () => ipcRenderer.invoke('optimize-memory'),
+  optimizeCpu: () => ipcRenderer.invoke('optimize-cpu'),
+  
   // ============================================
   // Auto Updater
   // ============================================
