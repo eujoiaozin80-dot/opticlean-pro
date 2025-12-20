@@ -48,17 +48,19 @@ interface ProcessesProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Processes = ({ className, ...props }: ProcessesProps) => {
+  const processesHook = useProcesses();
+  
   const {
-    filteredProcesses,
-    loading,
-    connectionStatus,
-    filters,
-    searchTerm,
-    stats,
-    setFilters,
-    setSearchTerm,
-    killProcess,
-  } = useProcesses();
+    filteredProcesses = [],
+    loading = false,
+    connectionStatus = 'disconnected',
+    filters = {},
+    searchTerm = '',
+    stats = { processCount: 0, totalCpu: 0, totalMem: 0, avgCpu: 0, avgMem: 0 },
+    setFilters = () => {},
+    setSearchTerm = () => {},
+    killProcess = async () => false,
+  } = processesHook || {};
 
   const { isProtected, addProtected, removeProtected, protectedProcesses } = useProtectedProcesses();
   const { history, addToHistory, clearHistory } = useProcessHistory();

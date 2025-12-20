@@ -951,7 +951,51 @@ const Admin = ({ className, ...props }: AdminProps) => {
 
         {/* Tab: Templates */}
         <TabsContent value="templates">
-          <CodeTemplates userId={userId} onCodeCreated={() => loadActivationCodes(true)} />
+          <CodeTemplates 
+            userId={userId} 
+            onCodeCreated={() => loadActivationCodes(true)} 
+            onGenerateWithTemplate={async (template) => {
+              if (!userId) return;
+              setLoading(true);
+              try {
+                const randomPart = Array.from({ length: 2 }, () =>
+                  Math.random().toString(36).substring(2, 6).toUpperCase()
+                ).join('-');
+                const code = `${template.prefix}-${randomPart}`;
+                
+                const { error } = await supabase
+                  .from('activation_codes')
+                  .insert({
+                    code,
+                    created_by: userId,
+                    validity_days: template.validityDays,
+                  });
+                  
+                if (error) throw error;
+                
+                await logAdminAction(userId, 'create_code', 'code', code, {
+                  validity_days: template.validityDays,
+                  template: template.name,
+                });
+                
+                toast({
+                  title: "Código gerado",
+                  description: `Código: ${code} (${template.name} - ${template.validityDays} dias)`,
+                });
+                
+                loadActivationCodes(true);
+                loadAdminLogs();
+              } catch (error: any) {
+                toast({
+                  title: "Erro",
+                  description: error.message || "Erro ao gerar código",
+                  variant: "destructive",
+                });
+              } finally {
+                setLoading(false);
+              }
+            }}
+          />
         </TabsContent>
 
         {/* Tab: Analytics */}

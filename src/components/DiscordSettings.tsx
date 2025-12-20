@@ -85,10 +85,12 @@ export const DiscordSettings = () => {
   }, []);
 
   const handleSaveWebhook = () => {
-    if (!webhookUrl.includes('discord.com/api/webhooks/')) {
+    // Validação mais flexível para webhooks Discord
+    const webhookPattern = /^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[\w-]+$/;
+    if (!webhookUrl.trim() || (!webhookUrl.includes('discord.com/api/webhooks/') && !webhookUrl.includes('discordapp.com/api/webhooks/'))) {
       toast({
         title: 'URL Inválida',
-        description: 'Por favor, insira uma URL de webhook do Discord válida',
+        description: 'A URL deve ser um webhook do Discord (discord.com/api/webhooks/...)',
         variant: 'destructive',
       });
       return;

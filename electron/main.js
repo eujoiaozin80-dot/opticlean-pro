@@ -983,7 +983,222 @@ ipcMain.handle('check-updates', async () => {
   };
 });
 
-// ================= IPC HANDLERS - AUTO UPDATER =================
+// ================= OTIMIZAÇÃO DE DISCO =================
+ipcMain.handle('optimize-disk', async () => {
+  if (!checkRateLimit('optimize-disk', 2, 600000)) {
+    return { success: false, error: 'Aguarde 10 minutos entre otimizações de disco.' };
+  }
+  
+  writeLog('Iniciando otimização de disco...');
+  const actions = [];
+  
+  try {
+    // Limpar arquivos temporários do sistema
+    await execPromise('del /q/f/s %TEMP%\\* 2>nul');
+    actions.push('Arquivos temporários limpos');
+  } catch {}
+  
+  try {
+    // Limpar cache do Windows
+    await execPromise('del /q/f/s C:\\Windows\\Temp\\* 2>nul');
+    actions.push('Cache do Windows limpo');
+  } catch {}
+  
+  try {
+    // Limpar prefetch (melhora inicialização)
+    await execPromise('del /q/f/s C:\\Windows\\Prefetch\\* 2>nul');
+    actions.push('Prefetch otimizado');
+  } catch {}
+  
+  try {
+    // Analisar e corrigir erros do disco (apenas análise, não correção que requer reinício)
+    await execPromise('chkdsk C: 2>nul', { timeout: 30000 });
+    actions.push('Verificação de disco iniciada');
+  } catch {}
+  
+  const disk = await getDiskUsage();
+  
+  return {
+    success: true,
+    actions,
+    freeSpace: disk.free,
+    message: `Otimização concluída. ${disk.free}GB livres.`
+  };
+});
+
+// ================= OTIMIZAÇÃO DE REDE =================
+ipcMain.handle('optimize-network', async () => {
+  if (!checkRateLimit('optimize-network', 2, 300000)) {
+    return { success: false, error: 'Aguarde 5 minutos entre otimizações de rede.' };
+  }
+  
+  writeLog('Iniciando otimização de rede...');
+  const actions = [];
+  
+  try {
+    // Limpar cache DNS
+    await execPromise('ipconfig /flushdns');
+    actions.push('Cache DNS limpo');
+  } catch {}
+  
+  try {
+    // Reset do catálogo Winsock
+    await execPromise('netsh winsock reset catalog 2>nul');
+    actions.push('Winsock resetado');
+  } catch {}
+  
+  try {
+    // Resetar configurações TCP/IP
+    await execPromise('netsh int ip reset 2>nul');
+    actions.push('TCP/IP resetado');
+  } catch {}
+  
+  try {
+    // Renovar IP
+    await execPromise('ipconfig /release && ipconfig /renew');
+    actions.push('IP renovado');
+  } catch {}
+  
+  return {
+    success: true,
+    actions,
+    message: 'Configurações de rede otimizadas. Reinicie para aplicar todas as mudanças.'
+  };
+});
+
+// ================= LIMPEZA DE REGISTRO =================
+ipcMain.handle('clean-registry', async () => {
+  if (!checkRateLimit('clean-registry', 1, 600000)) {
+    return { success: false, error: 'Aguarde 10 minutos entre limpezas de registro.' };
+  }
+  
+  writeLog('Iniciando limpeza de registro...');
+  const actions = [];
+  let keysRemoved = 0;
+  
+  // Paths de registro comuns para limpeza
+  const registryPaths = [
+    'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU',
+    'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TypedPaths',
+    'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\OpenSaveMRU',
+  ];
+  
+  for (const path of registryPaths) {
+    try {
+      await execPromise(`reg delete "${path}" /f 2>nul`);
+      keysRemoved++;
+      actions.push(`Histórico removido: ${path.split('\\').pop()}`);
+    } catch {}
+  }
+  
+  // Limpar cache de ícones
+  try {
+    await execPromise('ie4uinit.exe -ClearIconCache 2>nul');
+    actions.push('Cache de ícones limpo');
+  } catch {}
+  
+  // Limpar histórico de pesquisa
+  try {
+    await execPromise('del /f /q "%APPDATA%\\Microsoft\\Windows\\Recent\\*" 2>nul');
+    actions.push('Histórico de arquivos recentes limpo');
+  } catch {}
+  
+  return {
+    success: true,
+    keysRemoved,
+    actions,
+    message: `Limpeza de registro concluída. ${keysRemoved} entradas processadas.`
+  };
+});
+
+// ================= OTIMIZAÇÃO DE MEMÓRIA =================
+ipcMain.handle('optimize-memory', async () => {
+  if (!checkRateLimit('optimize-memory', 3, 120000)) {
+    return { success: false, error: 'Aguarde 2 minutos entre otimizações de memória.' };
+  }
+  
+  writeLog('Iniciando otimização de memória...');
+  const memBefore = await getMemoryUsage();
+  
+  try {
+    // Liberar memória de trabalho dos processos
+    await execPromise('powershell -Command "Get-Process | ForEach-Object { try { $_.MinWorkingSet = $_.MinWorkingSet } catch {} }"', { timeout: 30000 });
+  } catch {}
+  
+  try {
+    // Limpar memória standby (requer privilégios elevados)
+    await execPromise('powershell -Command "[System.GC]::Collect()"', { timeout: 10000 });
+  } catch {}
+  
+  // Aguardar um pouco para memória ser liberada
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const memAfter = await getMemoryUsage();
+  const freedMB = Math.max(0, (memBefore.used - memAfter.used) * 1024);
+  
+  return {
+    success: true,
+    freedMB: Math.round(freedMB),
+    memoryBefore: memBefore.percent,
+    memoryAfter: memAfter.percent,
+    message: `${Math.round(freedMB)}MB de memória liberados.`
+  };
+});
+
+// ================= OTIMIZAÇÃO DE CPU =================
+ipcMain.handle('optimize-cpu', async () => {
+  if (!checkRateLimit('optimize-cpu', 3, 120000)) {
+    return { success: false, error: 'Aguarde 2 minutos entre otimizações de CPU.' };
+  }
+  
+  writeLog('Iniciando otimização de CPU...');
+  const actions = [];
+  let processesOptimized = 0;
+  
+  try {
+    // Reduzir prioridade de processos que consomem muita CPU
+    const { stdout } = await execPromise('wmic process get Name,ProcessId,PercentProcessorTime /format:csv');
+    const lines = stdout.trim().split('\n').slice(1);
+    
+    const essentialProcesses = [
+      'System', 'svchost.exe', 'csrss.exe', 'wininit.exe', 'services.exe',
+      'lsass.exe', 'smss.exe', 'explorer.exe', 'dwm.exe', 'electron.exe'
+    ];
+    
+    for (const line of lines) {
+      const parts = line.split(',');
+      const name = parts[1];
+      const pid = parseInt(parts[2]) || 0;
+      const cpuUsage = parseFloat(parts[3]) || 0;
+      
+      // Se uso de CPU > 50% e não é essencial
+      if (cpuUsage > 50 && name && !essentialProcesses.includes(name) && pid > 0) {
+        try {
+          await execPromise(`wmic process where ProcessId=${pid} CALL setpriority "below normal"`);
+          processesOptimized++;
+          actions.push(`Prioridade reduzida: ${name}`);
+        } catch {}
+      }
+    }
+  } catch (error) {
+    writeLog(`Erro na otimização de CPU: ${error.message}`);
+  }
+  
+  // Elevar prioridade do OptiClean
+  try {
+    await execPromise('wmic process where name="electron.exe" CALL setpriority "high priority"');
+    actions.push('Prioridade do OptiClean elevada');
+  } catch {}
+  
+  return {
+    success: true,
+    processesOptimized,
+    actions,
+    message: `${processesOptimized} processos otimizados.`
+  };
+});
+
+
 ipcMain.handle('check-for-updates', async () => {
   try {
     await autoUpdater.checkForUpdates();
