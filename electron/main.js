@@ -4,8 +4,7 @@
 // ================================
 
 import { app, BrowserWindow, ipcMain, Notification, dialog } from 'electron';
-import pkg from 'electron-updater';
-const { autoUpdater } = pkg;
+import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
