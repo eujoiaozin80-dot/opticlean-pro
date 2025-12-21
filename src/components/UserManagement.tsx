@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Users, Search, Shield, UserCheck, UserX, Trash2, 
   RefreshCw, Mail, Calendar, Clock, Filter, Download,
-  Crown, User as UserIcon, MoreVertical, Edit, Eye
+  Crown, User as UserIcon, MoreVertical, Edit, Eye, Send
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +44,10 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [editForm, setEditForm] = useState({ full_name: '', role: 'user' as 'founder' | 'user' });
+  const [emailForm, setEmailForm] = useState({ subject: '', message: '' });
+  const [sendingEmail, setSendingEmail] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -211,6 +215,64 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
         description: error.message || 'Erro ao salvar',
         variant: 'destructive',
       });
+    }
+  };
+
+  const openEmailDialog = (user: UserProfile) => {
+    setSelectedUser(user);
+    setEmailForm({ subject: '', message: '' });
+    setShowEmailDialog(true);
+  };
+
+  const sendEmail = async () => {
+    if (!selectedUser || !emailForm.subject || !emailForm.message) {
+      toast({
+        title: 'Erro',
+        description: 'Preencha todos os campos',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      // Get current user's name for sender
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', currentUserId)
+        .single();
+
+      const senderName = currentProfile?.full_name || currentProfile?.email || 'Administrador';
+
+      const { data, error } = await supabase.functions.invoke('send-admin-email', {
+        body: {
+          to: selectedUser.email,
+          toName: selectedUser.full_name,
+          subject: emailForm.subject,
+          message: emailForm.message,
+          senderName,
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      toast({
+        title: 'Email enviado',
+        description: `Email enviado para ${selectedUser.email}`,
+      });
+      
+      setShowEmailDialog(false);
+    } catch (error: any) {
+      console.error('Erro ao enviar email:', error);
+      toast({
+        title: 'Erro ao enviar',
+        description: error.message || 'Não foi possível enviar o email',
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -462,6 +524,10 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                           <Edit className="w-4 h-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEmailDialog(user)}>
+                          <Mail className="w-4 h-4 mr-2" />
+                          Enviar Email
+                        </DropdownMenuItem>
                         {user.role === 'user' ? (
                           <DropdownMenuItem 
                             onClick={() => updateUserRole(user.id, 'founder')}
@@ -559,6 +625,67 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
             </Button>
             <Button onClick={saveUserEdit}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-primary" />
+              Enviar Email
+            </DialogTitle>
+            <DialogDescription>
+              Enviar mensagem para {selectedUser?.full_name || selectedUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Para</Label>
+              <Input
+                value={selectedUser?.email || ''}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Assunto *</Label>
+              <Input
+                value={emailForm.subject}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
+                placeholder="Ex: Atualização importante"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Mensagem *</Label>
+              <Textarea
+                value={emailForm.message}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Digite sua mensagem aqui..."
+                rows={6}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)} disabled={sendingEmail}>
+              Cancelar
+            </Button>
+            <Button onClick={sendEmail} disabled={sendingEmail || !emailForm.subject || !emailForm.message}>
+              {sendingEmail ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Enviar Email
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
