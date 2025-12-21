@@ -108,15 +108,48 @@ const Settings = ({ className, ...props }: SettingsProps) => {
   useEffect(() => {
     const saved = localStorage.getItem('app_settings');
     if (saved) {
-      setAppSettings({ ...defaultSettings, ...JSON.parse(saved) });
+      const parsed = { ...defaultSettings, ...JSON.parse(saved) };
+      setAppSettings(parsed);
+      applyVisualSettings(parsed);
     }
   }, []);
+
+  // Aplicar configurações visuais no DOM
+  const applyVisualSettings = (settings: AppSettings) => {
+    const root = document.documentElement;
+    
+    // Tamanho da fonte
+    root.style.fontSize = `${settings.fontSize}px`;
+    
+    // Modo compacto
+    if (settings.compactMode) {
+      root.classList.add('compact-mode');
+    } else {
+      root.classList.remove('compact-mode');
+    }
+    
+    // Animações
+    if (!settings.animations || settings.reducedMotion) {
+      root.classList.add('reduce-motion');
+    } else {
+      root.classList.remove('reduce-motion');
+    }
+    
+    // Alto contraste
+    if (settings.highContrast) {
+      root.classList.add('high-contrast');
+    } else {
+      root.classList.remove('high-contrast');
+    }
+  };
 
   // Salvar configurações
   const saveSettings = (newSettings: Partial<AppSettings>) => {
     const updated = { ...appSettings, ...newSettings };
     setAppSettings(updated);
     localStorage.setItem('app_settings', JSON.stringify(updated));
+    applyVisualSettings(updated);
+    toast({ title: 'Configuração salva', description: 'Alteração aplicada com sucesso!' });
   };
   
   const exportPdfReport = () => {

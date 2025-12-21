@@ -375,3 +375,64 @@
     animation: none;
   }
 }
+
+/* Appearance Settings Classes */
+
+/* Compact Mode */
+.compact-mode {
+  --spacing-unit: 0.75;
+}
+
+.compact-mode .space-y-6 {
+  gap: 1rem;
+}
+
+.compact-mode .space-y-4 {
+  gap: 0.5rem;
+}
+
+.compact-mode .p-4 {
+  padding: 0.75rem;
+}
+
+.compact-mode .p-6 {
+  padding: 1rem;
+}
+
+.compact-mode .gap-4 {
+  gap: 0.5rem;
+}
+
+.compact-mode .gap-6 {
+  gap: 1rem;
+}
+
+/* Reduce Motion */
+.reduce-motion,
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* High Contrast */
+.high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 100%;
+  --border: 0 0% 40%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 80%;
+}
+
+.high-contrast .metric-card,
+.high-contrast .glass,
+.high-contrast .glass-strong {
+  border-width: 2px;
+  border-color: hsl(0 0% 60%);
+}
+
+.high-contrast .text-muted-foreground {
+  color: hsl(0 0% 85%);
+}
