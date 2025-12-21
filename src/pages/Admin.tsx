@@ -537,10 +537,6 @@ const Admin = ({ className, ...props }: AdminProps) => {
             <Lock className="w-4 h-4" />
             Histórico de Logins
           </TabsTrigger>
-          <TabsTrigger value="local" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Licença Local
-          </TabsTrigger>
         </TabsList>
 
         {/* Tab: Códigos */}
@@ -1006,11 +1002,6 @@ const Admin = ({ className, ...props }: AdminProps) => {
         {/* Tab: Histórico de Logins */}
         <TabsContent value="logins">
           <LoginHistoryPanel isAdmin={true} />
-        </TabsContent>
-
-        {/* Tab: Licença Local (Electron) */}
-        <TabsContent value="local">
-          <UserPanel />
         </TabsContent>
       </Tabs>
     </div>
