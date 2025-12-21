@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw, Lock, AlertTriangle, BarChart3, Layers } from 'lucide-react';
+import { Key, Copy, Check, Plus, Shield, Settings, Trash2, Calendar, Search, Filter, Download, FileText, History as HistoryIcon, X, RefreshCw, Lock, AlertTriangle, BarChart3, Layers, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OutletContext } from '@/types/outlet-context';
@@ -19,6 +19,7 @@ import { LoginHistoryPanel } from '@/components/LoginHistoryPanel';
 import { ExpiringCodesAlert } from '@/components/ExpiringCodesAlert';
 import { CodeTemplates } from '@/components/CodeTemplates';
 import { UsageAnalytics } from '@/components/UsageAnalytics';
+import { UserManagement } from '@/components/UserManagement';
 
 interface ActivationCode {
   id: string;
@@ -520,10 +521,14 @@ const Admin = ({ className, ...props }: AdminProps) => {
 
       {/* Tabs */}
       <Tabs defaultValue="codes" className="space-y-4">
-        <TabsList className="glass-strong border border-border/50">
+        <TabsList className="glass-strong border border-border/50 flex-wrap h-auto p-1">
           <TabsTrigger value="codes" className="flex items-center gap-2">
             <Key className="w-4 h-4" />
             Códigos
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Usuários
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
             <Layers className="w-4 h-4" />
@@ -1002,6 +1007,11 @@ const Admin = ({ className, ...props }: AdminProps) => {
         {/* Tab: Histórico de Logins */}
         <TabsContent value="logins">
           <LoginHistoryPanel isAdmin={true} />
+        </TabsContent>
+
+        {/* Tab: Usuários */}
+        <TabsContent value="users">
+          <UserManagement currentUserId={userId} />
         </TabsContent>
       </Tabs>
     </div>
