@@ -37,25 +37,8 @@ Aplicativo de otimização Windows. Transforme o seu Pc fraco em uma maquina!
 - Validação e sanitização de inputs
 - Proteção contra command injection
 
-### 📅 Agendamento
-- Tarefas agendadas
-- Limpezas automáticas
-- Notificações de conclusão
-
-## 🛠️ Tecnologias
-
-- **Frontend**: React 18, TypeScript, Tailwind CSS
-- **Desktop**: Electron 39
-- **Backend**: Supabase (Auth + Database)
-- **UI Components**: Radix UI, shadcn/ui
-- **Gráficos**: Recharts
-- **Build**: Vite, Electron Builder
-
-## 📦 Instalação
-
 ### Pré-requisitos
 - Node.js 18+ 
-- npm ou yarn
 - Windows 10/11
 
 ## 🎯 Uso
@@ -102,7 +85,5 @@ Para suporte, abra uma issue no GitHub ou entre em contato via email.
 - [ ] Modo de segurança com preview
 
 ---
-Release pipeline configurado com sucesso 🚀
-
 **Desenvolvido com ❤️**
 
