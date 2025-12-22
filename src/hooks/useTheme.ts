@@ -16,19 +16,22 @@ export const useTheme = () => {
     
     if (theme === 'light') {
       root.classList.add('light');
-      root.style.setProperty('--background', '0 0% 98%');
-      root.style.setProperty('--background-alt', '0 0% 96%');
+      // Tema claro com melhor contraste
+      root.style.setProperty('--background', '0 0% 100%');
+      root.style.setProperty('--background-alt', '0 0% 98%');
       root.style.setProperty('--foreground', '222 47% 11%');
       root.style.setProperty('--card', '0 0% 100%');
       root.style.setProperty('--card-foreground', '222 47% 11%');
       root.style.setProperty('--popover', '0 0% 100%');
       root.style.setProperty('--popover-foreground', '222 47% 11%');
       root.style.setProperty('--muted', '210 40% 96%');
-      root.style.setProperty('--muted-foreground', '215 16% 47%');
-      root.style.setProperty('--border', '214 32% 91%');
+      root.style.setProperty('--muted-foreground', '215 16% 35%');
+      root.style.setProperty('--border', '214 32% 85%');
       root.style.setProperty('--input', '214 32% 91%');
+      root.style.setProperty('--ring', '210 100% 56%');
     } else {
       root.classList.remove('light');
+      // Tema escuro (mantido)
       root.style.setProperty('--background', '222 47% 6%');
       root.style.setProperty('--background-alt', '220 45% 8%');
       root.style.setProperty('--foreground', '210 40% 98%');
@@ -40,6 +43,7 @@ export const useTheme = () => {
       root.style.setProperty('--muted-foreground', '215 20% 65%');
       root.style.setProperty('--border', '220 30% 18%');
       root.style.setProperty('--input', '220 40% 12%');
+      root.style.setProperty('--ring', '210 100% 56%');
     }
     
     localStorage.setItem('opticlean-theme', theme);

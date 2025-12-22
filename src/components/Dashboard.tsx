@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Trash2, 
   Zap, 
@@ -26,6 +26,10 @@ import { useToast } from '@/hooks/use-toast';
 import UserProfile from './UserProfile';
 import { useSystemMetrics } from '@/hooks/useSystemMetrics';
 import { useSystemActions } from '@/hooks/useSystemActions';
+import { Database } from '@/integrations/supabase/types';
+
+type ActivationCode = Database['public']['Tables']['activation_codes']['Row'] & { user_email?: string };
+type UserProfile = Database['public']['Tables']['profiles']['Row'];
 
 interface DashboardProps {
   onLogout: () => void;
@@ -38,8 +42,8 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [activationCodes, setActivationCodes] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [activationCodes, setActivationCodes] = useState<ActivationCode[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { toast } = useToast();
@@ -48,19 +52,7 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
 
   const isFounder = userRole === 'founder';
 
-  useEffect(() => {
-    if (isFounder && showAdminPanel) {
-      loadActivationCodes();
-    }
-  }, [isFounder, showAdminPanel]);
-
-  useEffect(() => {
-    if (isFounder && showUserManagement) {
-      loadUsers();
-    }
-  }, [isFounder, showUserManagement]);
-
-  const loadActivationCodes = async () => {
+  const loadActivationCodes = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('activation_codes')
@@ -69,10 +61,32 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
 
       if (error) throw error;
       setActivationCodes(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar códigos:', error);
     }
-  };
+  }, []);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error: unknown) {
+      console.error('Erro ao carregar usuários:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os usuários',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
   const generateActivationCode = async () => {
     setLoading(true);
@@ -97,10 +111,10 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
       });
 
       loadActivationCodes();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
         variant: "destructive",
       });
     } finally {
@@ -108,27 +122,17 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
     }
   };
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error: any) {
-      console.error('Erro ao carregar usuários:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os usuários',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (isFounder && showAdminPanel) {
+      loadActivationCodes();
     }
-  };
+  }, [isFounder, showAdminPanel, loadActivationCodes]);
+
+  useEffect(() => {
+    if (isFounder && showUserManagement) {
+      loadUsers();
+    }
+  }, [isFounder, showUserManagement, loadUsers]);
 
   const toggleUserStatus = async (targetUserId: string, currentStatus: boolean) => {
     try {
@@ -145,7 +149,7 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
       });
 
       loadUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao atualizar status:', error);
       toast({
         title: 'Erro',
@@ -186,7 +190,7 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
             </div>
             <div>
               <h2 className="font-bold text-lg">OptiClean Pro</h2>
-              <p className="text-xs text-muted-foreground">v1.1.0</p>
+              <p className="text-xs text-muted-foreground">v1.2.0</p>
             </div>
           </div>
 
@@ -502,7 +506,7 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
           </div>
           <div>
             <h2 className="font-bold text-lg">OptiClean Pro</h2>
-            <p className="text-xs text-muted-foreground">v1.1.0</p>
+            <p className="text-xs text-muted-foreground">v1.2.0</p>
           </div>
         </div>
 

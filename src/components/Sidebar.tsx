@@ -75,7 +75,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {isFounder ? 'Administrador' : currentVersion || 'v1.1.0'}
+                {isFounder ? 'Administrador' : currentVersion || 'v1.2.0'}
               </p>
             </div>
           )}

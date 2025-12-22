@@ -198,7 +198,7 @@ const Users = ({ className, ...props }: UsersProps) => {
 
     // Ordenação
     filtered.sort((a, b) => {
-      let aVal: any, bVal: any;
+      let aVal: string | undefined, bVal: string | undefined;
 
       switch (sortBy) {
         case 'name':

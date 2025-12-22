@@ -77,7 +77,7 @@ const isElectron = (): boolean => {
     return typeof window !== 'undefined' && 
            typeof window.electronAPI !== 'undefined' &&
            window.electronAPI !== null &&
-           typeof (window.electronAPI as any).onSystemStats === 'function';
+           typeof window.electronAPI.onSystemStats === 'function';
   } catch (error) {
     console.error('Erro ao verificar ambiente Electron:', error);
     return false;
@@ -124,7 +124,7 @@ export const useSystemStats = () => {
 
     try {
       // Listener para stats em tempo real
-      const api = window.electronAPI as any;
+      const api = window.electronAPI;
       if (!api || typeof api.onSystemStats !== 'function') {
         console.error('electronAPI.onSystemStats não disponível');
         setConnectionStatus('error');

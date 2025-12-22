@@ -173,6 +173,12 @@ export interface ElectronAPI {
   saveLicense: (data: LicenseData) => Promise<{ success: boolean; error?: string }>;
   deleteUser: () => Promise<{ success: boolean; error?: string }>;
   generateCode: () => Promise<string>;
+  
+  // Execução de Comandos
+  runCommand: (command: string) => Promise<{ success: boolean; error?: string }>;
+  
+  // Gerenciamento de Prioridade de Processos
+  setProcessPriority: (pid: number, priority: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

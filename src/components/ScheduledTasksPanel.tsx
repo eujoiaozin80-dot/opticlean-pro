@@ -122,7 +122,7 @@ export const ScheduledTasksPanel = () => {
 
                 <div className="space-y-2">
                   <Label>Tipo de Operação</Label>
-                  <Select value={taskType} onValueChange={(v: any) => setTaskType(v)}>
+                  <Select value={taskType} onValueChange={(v: 'cleaning' | 'optimization' | 'analysis') => setTaskType(v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -136,7 +136,7 @@ export const ScheduledTasksPanel = () => {
 
                 <div className="space-y-2">
                   <Label>Frequência</Label>
-                  <Select value={schedule} onValueChange={(v: any) => setSchedule(v)}>
+                  <Select value={schedule} onValueChange={(v: 'daily' | 'weekly' | 'monthly') => setSchedule(v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

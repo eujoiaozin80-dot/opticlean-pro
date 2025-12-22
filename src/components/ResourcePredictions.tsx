@@ -49,9 +49,9 @@ export const ResourcePredictions = ({ cpuHistory, memoryHistory }: ResourcePredi
     }
   };
 
-  const getTrendColor = (trend: string, predicted: number) => {
+  const getTrendColor = (trend: string, predicted: number): "default" | "secondary" | "destructive" | "outline" => {
     if (predicted >= 90) return 'destructive';
-    if (trend === 'up' && predicted >= 70) return 'warning';
+    if (trend === 'up' && predicted >= 70) return 'destructive';
     return 'default';
   };
 
@@ -78,7 +78,7 @@ export const ResourcePredictions = ({ cpuHistory, memoryHistory }: ResourcePredi
             </div>
           </div>
           <div className="text-right">
-            <Badge variant={getTrendColor(predictions.cpu.trend, predictions.cpu.predicted) as any}>
+            <Badge variant={getTrendColor(predictions.cpu.trend, predictions.cpu.predicted)}>
               {predictions.cpu.predicted >= 90 ? (
                 <AlertTriangle className="w-3 h-3 mr-1" />
               ) : (
@@ -104,7 +104,7 @@ export const ResourcePredictions = ({ cpuHistory, memoryHistory }: ResourcePredi
             </div>
           </div>
           <div className="text-right">
-            <Badge variant={getTrendColor(predictions.memory.trend, predictions.memory.predicted) as any}>
+            <Badge variant={getTrendColor(predictions.memory.trend, predictions.memory.predicted)}>
               {predictions.memory.predicted >= 90 ? (
                 <AlertTriangle className="w-3 h-3 mr-1" />
               ) : (

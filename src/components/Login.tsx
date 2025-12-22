@@ -23,7 +23,11 @@ import { validateActivationCode, markActivationCodeAsUsed } from "@/utils/activa
 import logoOpticlean from "@/assets/logo-opticlean.png";
 
 /* SCHEMAS */
-const emailSchema = z.string().trim().email({ message: "E-mail inválido" });
+const emailSchema = z.string().trim().email({ message: "E-mail inválido" })
+  .refine(
+    (email) => email.toLowerCase().endsWith('@gmail.com'),
+    { message: "Apenas emails Gmail são permitidos (ex: nome@gmail.com)" }
+  );
 const passwordSchema = z
   .string()
   .trim()
@@ -40,6 +44,12 @@ const passwordSchema = z
     (val) => /[^a-zA-Z\d]/.test(val),
     { message: "Senha deve conter pelo menos um caractere especial" }
   );
+const fullNameSchema = z
+  .string()
+  .trim()
+  .min(2, { message: "Nome deve ter no mínimo 2 caracteres" })
+  .max(50, { message: "Nome deve ter no máximo 50 caracteres" })
+  .regex(/^[a-zA-ZÀ-ÿ\s]+$/, { message: "Nome deve conter apenas letras e espaços" });
 const activationCodeSchema = z
   .string()
   .trim()
@@ -157,6 +167,7 @@ function useAIMockTyping(list: string[], delay = 1500): string {
 export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [activationCode, setActivationCode] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -366,6 +377,14 @@ export default function Login({ onLogin }: LoginProps) {
         throw new Error(errorMessages.join('\n'));
       }
 
+      // Validar nome completo se for registro
+      if (!isLogin) {
+        const fullNameResult = fullNameSchema.safeParse(fullName);
+        if (!fullNameResult.success) {
+          throw new Error(fullNameResult.error.errors[0].message);
+        }
+      }
+
       await runCinematic();
 
       // LOGIN
@@ -427,6 +446,17 @@ export default function Login({ onLogin }: LoginProps) {
             throw new Error("Erro ao criar conta. Verifique seu email para confirmar.");
           }
 
+          // Atualizar perfil com nome completo
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({ full_name: fullName.trim() })
+            .eq("id", authData.user.id);
+
+          if (profileError) {
+            console.error("Erro ao atualizar perfil:", profileError);
+            // Não bloquear o registro, apenas logar o erro
+          }
+
           // Marcar código como usado
           const markResult = await markActivationCodeAsUsed(validation.code.id, authData.user.id);
           if (!markResult.success) {
@@ -461,6 +491,17 @@ export default function Login({ onLogin }: LoginProps) {
 
           if (!authData.user) {
             throw new Error("Erro ao criar conta");
+          }
+
+          // Atualizar perfil com nome completo para founder
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({ full_name: fullName.trim() })
+            .eq("id", authData.user.id);
+
+          if (profileError) {
+            console.error("Erro ao atualizar perfil:", profileError);
+            // Não bloquear o registro, apenas logar o erro
           }
 
           const { data: profile } = await supabase
@@ -560,6 +601,24 @@ export default function Login({ onLogin }: LoginProps) {
                 </p>
               )}
             </div>
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nome Completo</Label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    placeholder="Digite seu nome completo"
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={loading}
+                    className="h-11 rounded-lg pl-10"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
@@ -819,7 +878,7 @@ export default function Login({ onLogin }: LoginProps) {
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-6 pt-6 border-t">
-            v1.1.0 • © 2025 OptiClean Pro
+            v1.2.0 • © 2025 OptiClean Pro
           </p>
         </Card>
       </motion.div>

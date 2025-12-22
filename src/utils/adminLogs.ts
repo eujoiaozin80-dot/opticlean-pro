@@ -13,6 +13,16 @@ export type AdminAction =
 
 export type TargetType = 'code' | 'user' | 'codes' | 'users';
 
+interface RawAdminLog {
+  id: string;
+  admin_id: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface AdminLog {
   id: string;
   admin_id: string;
@@ -35,12 +45,13 @@ export async function logAdminAction(
 ): Promise<void> {
   try {
     // Usar type assertion para contornar tipos do Supabase que ainda não incluem admin_logs
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from('admin_logs').insert({
       admin_id: adminId,
       action,
       target_type: targetType,
       target_id: targetId,
-      details: details as any,
+      details,
     });
 
     if (error) {
@@ -69,6 +80,7 @@ export async function getAdminLogs(
 ): Promise<{ logs: AdminLog[]; total: number }> {
   try {
     // Usar type assertion para contornar tipos do Supabase que ainda não incluem admin_logs
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error, count } = await (supabase as any)
       .from('admin_logs')
       .select('*', { count: 'exact' })
@@ -78,7 +90,7 @@ export async function getAdminLogs(
     if (error) throw error;
 
     // Validar e mapear os dados para o tipo AdminLog
-    const logs: AdminLog[] = (data || []).map((log: any) => ({
+    const logs: AdminLog[] = (data || []).map((log: RawAdminLog) => ({
       id: log.id,
       admin_id: log.admin_id,
       action: log.action as AdminAction,

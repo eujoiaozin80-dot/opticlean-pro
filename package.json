@@ -18,12 +18,16 @@
   "build": {
     "appId": "com.opticlean.pro",
     "productName": "OptiClean Pro",
+    "icon": "src/assets/logo-opticlean.png",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "public/favicon.ico",
+      "public/logo-opticlean.png",
+      "public/robots.txt"
     ],
     "win": {
       "target": "nsis"

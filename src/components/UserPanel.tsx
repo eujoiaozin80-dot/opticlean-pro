@@ -58,7 +58,7 @@ const UserPanel = () => {
     }
 
     try {
-      const api = window.electronAPI as any;
+      const api = window.electronAPI;
       const [user, licenseData] = await Promise.all([
         api.getUsername(),
         api.getLicense()
@@ -84,7 +84,7 @@ const UserPanel = () => {
     }
 
     try {
-      const api = window.electronAPI as any;
+      const api = window.electronAPI;
       const code = await api.generateCode();
       setGeneratedCode(code);
       toast({
@@ -115,7 +115,7 @@ const UserPanel = () => {
 
     setIsDeleting(true);
     try {
-      const api = window.electronAPI as any;
+      const api = window.electronAPI;
       const result = await api.deleteUser();
       
       if (result.success) {

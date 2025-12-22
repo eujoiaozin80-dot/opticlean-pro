@@ -216,7 +216,7 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
 
   // Processos ordenados e agrupados
   const sortedAndGroupedProcesses = useMemo(() => {
-    let sorted = [...filteredProcesses];
+    const sorted = [...filteredProcesses];
 
     // Ordenar
     sorted.sort((a, b) => {
@@ -491,10 +491,10 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
                 Nenhum processo encontrado
               </p>
             </div>
-          ) : groupBy && Array.isArray(sortedAndGroupedProcesses) && sortedAndGroupedProcesses.length > 0 && typeof sortedAndGroupedProcesses[0] === 'object' && 'name' in sortedAndGroupedProcesses[0] ? (
+          ) : groupBy ? (
             // Renderizar agrupado
             <div className="space-y-4 max-h-[500px] overflow-y-auto">
-              {(sortedAndGroupedProcesses as Array<{ name: string; processes: typeof filteredProcesses; totalCpu: number; totalMem: number; count: number }>).map((group) => (
+              {sortedAndGroupedProcesses.map((group) => (
                 <div key={group.name} className="border border-border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -571,7 +571,7 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
                   {selectedProcesses.size > 0 ? `${selectedProcesses.size} selecionado(s)` : 'Selecionar todos'}
                 </span>
               </div>
-              {(sortedAndGroupedProcesses as typeof filteredProcesses).map((process, index) => (
+              {sortedAndGroupedProcesses.map((process, index) => (
                 <div
                   key={process.pid}
                   className={`flex items-center justify-between p-3 bg-background/50 rounded-lg border transition-all animate-fade-up ${

@@ -66,7 +66,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
 
       if (error) throw error;
       setUsers(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar usuários:', error);
       toast({
         title: 'Erro',
@@ -103,10 +103,10 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
       });
       
       loadUsers(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao atualizar status',
+        description: error instanceof Error ? error.message : 'Erro ao atualizar status',
         variant: 'destructive',
       });
     }
@@ -136,10 +136,10 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
       });
       
       loadUsers(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao atualizar função',
+        description: error instanceof Error ? error.message : 'Erro ao atualizar função',
         variant: 'destructive',
       });
     }
@@ -170,10 +170,10 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
       });
       
       loadUsers(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao deletar usuário',
+        description: error instanceof Error ? error.message : 'Erro ao deletar usuário',
         variant: 'destructive',
       });
     }
@@ -209,10 +209,10 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
       
       setShowEditDialog(false);
       loadUsers(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao salvar',
+        description: error instanceof Error ? error.message : 'Erro ao salvar',
         variant: 'destructive',
       });
     }
@@ -264,11 +264,11 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
       });
       
       setShowEmailDialog(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao enviar email:', error);
       toast({
         title: 'Erro ao enviar',
-        description: error.message || 'Não foi possível enviar o email',
+        description: error instanceof Error ? error.message : 'Não foi possível enviar o email',
         variant: 'destructive',
       });
     } finally {
@@ -404,7 +404,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                 className="pl-10"
               />
             </div>
-            <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
+            <Select value={roleFilter} onValueChange={(v: 'all' | 'founder' | 'user') => setRoleFilter(v)}>
               <SelectTrigger className="w-[150px]">
                 <Shield className="w-4 h-4 mr-2" />
                 <SelectValue />
@@ -415,7 +415,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                 <SelectItem value="user">Usuários</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+            <Select value={statusFilter} onValueChange={(v: 'all' | 'active' | 'inactive') => setStatusFilter(v)}>
               <SelectTrigger className="w-[140px]">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue />

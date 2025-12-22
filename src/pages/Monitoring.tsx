@@ -36,7 +36,7 @@ const isElectron = (): boolean => {
     return typeof window !== 'undefined' && 
            typeof window.electronAPI !== 'undefined' &&
            window.electronAPI !== null &&
-           typeof (window.electronAPI as any).onSystemStats === 'function';
+           typeof window.electronAPI.onSystemStats === 'function';
   } catch (error) {
     console.error('Erro ao verificar ambiente Electron:', error);
     return false;
@@ -98,15 +98,15 @@ const Monitoring = ({ className, ...props }: MonitoringProps) => {
     if (!isElectron()) return;
     
     try {
-      const api = window.electronAPI as any;
+      const api = window.electronAPI;
       const result = await api.killProcess(pid);
       if (result.success) {
         toast({ title: "Processo Finalizado", description: `${name} (PID: ${pid})` });
       } else {
         throw new Error(result.error);
       }
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro", description: error instanceof Error ? error.message : "Erro desconhecido", variant: "destructive" });
     }
   };
 

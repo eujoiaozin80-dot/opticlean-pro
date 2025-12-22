@@ -4,7 +4,7 @@ import 'jspdf-autotable';
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: (options: any) => jsPDF;
+    autoTable: (options: unknown) => jsPDF;
     lastAutoTable: {
       finalY: number;
     };

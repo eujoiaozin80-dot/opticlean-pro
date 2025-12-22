@@ -118,7 +118,7 @@ const Admin = ({ className, ...props }: AdminProps) => {
 
       setActivationCodes(codesWithUsers);
       setLastUpdate(new Date());
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar códigos:', error);
       if (showLoading) {
         toast({
@@ -179,11 +179,11 @@ const Admin = ({ className, ...props }: AdminProps) => {
 
       loadActivationCodes(true);
       loadAdminLogs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar código:', error);
       toast({
         title: "Erro",
-        description: error.message || "Erro ao gerar código",
+        description: error instanceof Error ? error.message : "Erro ao gerar código",
         variant: "destructive",
       });
     } finally {
@@ -212,11 +212,11 @@ const Admin = ({ className, ...props }: AdminProps) => {
 
       loadActivationCodes(true);
       loadAdminLogs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao deletar código:', error);
       toast({
         title: "Erro",
-        description: error.message || "Erro ao deletar código",
+        description: error instanceof Error ? error.message : "Erro ao deletar código",
         variant: "destructive",
       });
     }
@@ -247,10 +247,10 @@ const Admin = ({ className, ...props }: AdminProps) => {
       setSelectedCodes([]);
       loadActivationCodes(true);
       loadAdminLogs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao deletar códigos",
+        description: error instanceof Error ? error.message : "Erro ao deletar códigos",
         variant: "destructive",
       });
     }
@@ -667,7 +667,7 @@ const Admin = ({ className, ...props }: AdminProps) => {
                     className="pl-10"
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={(v: any) => {
+                <Select value={statusFilter} onValueChange={(v: 'all' | 'available' | 'used' | 'expired') => {
                   setStatusFilter(v);
                   setCurrentPage(1);
                 }}>
@@ -986,10 +986,10 @@ const Admin = ({ className, ...props }: AdminProps) => {
                 
                 loadActivationCodes(true);
                 loadAdminLogs();
-              } catch (error: any) {
+              } catch (error: unknown) {
                 toast({
                   title: "Erro",
-                  description: error.message || "Erro ao gerar código",
+                  description: error instanceof Error ? error.message : "Erro ao gerar código",
                   variant: "destructive",
                 });
               } finally {

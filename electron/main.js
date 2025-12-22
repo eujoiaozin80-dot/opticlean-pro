@@ -4,7 +4,8 @@
 // ================================
 
 import { app, BrowserWindow, ipcMain, Notification, dialog } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import pkg from 'electron-updater';
+const { autoUpdater } = pkg;
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -1230,6 +1231,78 @@ ipcMain.handle('install-update', async () => {
 
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
+});
+
+// ================= EXECUÇÃO DE COMANDOS =================
+ipcMain.handle('run-command', async (_, command) => {
+  try {
+    // Lista de comandos permitidos para segurança
+    const allowedCommands = [
+      'taskmgr', 'control', 'cmd', 'notepad', 'calc', 'mspaint',
+      'explorer', 'msconfig', 'regedit', 'services.msc', 'compmgmt.msc',
+      'eventvwr', 'perfmon', 'resmon', 'dxdiag', 'msinfo32'
+    ];
+    
+    // Verificar se o comando é permitido
+    const commandBase = command.toLowerCase().split(' ')[0];
+    if (!allowedCommands.includes(commandBase)) {
+      return { success: false, error: `Comando não permitido: ${commandBase}` };
+    }
+    
+    // Executar comando de forma assíncrona (não bloquear a UI)
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        writeLog(`Erro ao executar comando "${command}": ${error.message}`);
+      } else {
+        writeLog(`Comando executado com sucesso: ${command}`);
+      }
+    });
+    
+    return { success: true };
+  } catch (error) {
+    writeLog(`Erro ao executar comando "${command}": ${error.message}`);
+    return { success: false, error: error.message };
+  }
+});
+
+// ================= GERENCIAMENTO DE PRIORIDADE DE PROCESSOS =================
+ipcMain.handle('set-process-priority', async (_, pid, priority) => {
+  // Rate limiting
+  if (!checkRateLimit('set-process-priority', 10, 60000)) { // 10 alterações por minuto
+    return { success: false, error: 'Muitas alterações de prioridade. Aguarde um momento.' };
+  }
+  
+  try {
+    // Validar PID
+    const validPid = validatePid(pid);
+    
+    // Validar prioridade
+    const validPriorities = ['low', 'below_normal', 'normal', 'above_normal', 'high', 'realtime'];
+    if (!validPriorities.includes(priority)) {
+      return { success: false, error: `Prioridade inválida: ${priority}` };
+    }
+    
+    // Mapear prioridades para valores do Windows
+    const priorityMap = {
+      'low': 'idle',
+      'below_normal': 'below_normal',
+      'normal': 'normal',
+      'above_normal': 'above_normal', 
+      'high': 'high',
+      'realtime': 'realtime'
+    };
+    
+    const wmicPriority = priorityMap[priority];
+    
+    // Usar WMIC para alterar prioridade do processo
+    await execPromise(`wmic process where ProcessId=${validPid} CALL setpriority "${wmicPriority} priority"`);
+    
+    writeLog(`Prioridade do processo ${validPid} alterada para ${priority}`);
+    return { success: true };
+  } catch (error) {
+    writeLog(`Erro ao alterar prioridade do processo ${pid}: ${error.message}`);
+    return { success: false, error: error.message };
+  }
 });
 
 // ================= LIFECYCLE =================

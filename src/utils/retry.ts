@@ -55,7 +55,7 @@ export async function retry<T>(
 /**
  * Cria uma função com retry automático
  */
-export function withRetry<T extends (...args: any[]) => Promise<any>>(
+export function withRetry<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   options?: RetryOptions
 ): T {

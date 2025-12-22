@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Zap, Plus, X, Play, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ElectronAPI } from '@/types/electron.d';
 
 interface Shortcut {
   id: string;
@@ -58,9 +59,9 @@ export const ProcessShortcuts = () => {
   };
 
   const runShortcut = async (shortcut: Shortcut) => {
-    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+    if (typeof window !== 'undefined' && window.electronAPI) {
       try {
-        await (window as any).electronAPI.runCommand(shortcut.command);
+        await window.electronAPI.runCommand(shortcut.command);
         toast({ title: 'Executado', description: `${shortcut.name} iniciado` });
       } catch (error) {
         toast({ title: 'Erro', description: 'Falha ao executar comando', variant: 'destructive' });

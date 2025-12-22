@@ -33,7 +33,7 @@ const Index = ({ className, ...props }: IndexProps) => {
         .eq('id', id)
         .maybeSingle();
 
-      if (error && (error as any).code !== 'PGRST116') throw error;
+      if (error && 'code' in error && error.code !== 'PGRST116') throw error;
 
       const role = data?.role ?? 'user';
       const name = data?.full_name || data?.email?.split('@')[0] || 'Usuário';

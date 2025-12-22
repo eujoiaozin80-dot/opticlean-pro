@@ -90,6 +90,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateCode: () => ipcRenderer.invoke('generate-code'),
   
   // ============================================
+  // Execução de Comandos
+  // ============================================
+  runCommand: (command) => ipcRenderer.invoke('run-command', command),
+  
+  // ============================================
+  // Gerenciamento de Prioridade de Processos
+  // ============================================
+  setProcessPriority: (pid, priority) => ipcRenderer.invoke('set-process-priority', pid, priority),
+  
+  // ============================================
   // Notificações Desktop
   // ============================================
   showNotification: (options) => ipcRenderer.invoke('show-notification', options),

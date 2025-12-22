@@ -12,8 +12,8 @@ export const useProcessHistory = () => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        setHistory(parsed.map((item: any) => ({
+        const parsed = JSON.parse(stored) as ProcessHistory[];
+        setHistory(parsed.map((item) => ({
           ...item,
           killedAt: new Date(item.killedAt),
         })));
@@ -49,7 +49,7 @@ export const useProcessHistory = () => {
       const newHistory = [historyItem, ...history];
       saveHistory(newHistory);
     },
-    [saveHistory]
+    [saveHistory, history]
   );
 
   const clearHistory = useCallback(() => {

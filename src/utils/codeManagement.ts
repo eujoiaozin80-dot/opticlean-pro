@@ -2,6 +2,18 @@ import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { sendCodeExpiringAlert } from '@/services/discordWebhook';
 
+interface ActivationCode {
+  id: string;
+  code: string;
+  created_at: string;
+  is_used: boolean;
+  used_at: string | null;
+  used_by: string | null;
+  validity_days: number | null;
+  expires_at: string | null;
+  user_email?: string;
+}
+
 interface ExpiringCode {
   code: string;
   userEmail: string;
@@ -122,8 +134,8 @@ export const renewActivationCode = async (
     }
 
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Erro desconhecido' };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
   }
 };
 
@@ -159,13 +171,13 @@ export const generateBulkCodes = async (
     }
 
     return { success: true, codes };
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Erro desconhecido' };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' };
   }
 };
 
 // Função para exportar códigos para PDF
-export const exportCodesToPdf = async (codes: any[]): Promise<void> => {
+export const exportCodesToPdf = async (codes: ActivationCode[]): Promise<void> => {
   const { jsPDF } = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
 
@@ -209,7 +221,7 @@ export interface CodeStats {
   usageRate: number;
 }
 
-export const calculateCodeStats = (codes: any[]): CodeStats => {
+export const calculateCodeStats = (codes: ActivationCode[]): CodeStats => {
   const now = new Date();
   const sevenDaysFromNow = new Date();
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);

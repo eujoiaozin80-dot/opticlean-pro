@@ -7,6 +7,15 @@ import { handleProcessError } from '@/utils/errorHandler';
 import { withTimeout } from '@/utils/timeout';
 import { useToast } from '@/hooks/use-toast';
 
+interface RawProcess {
+  pid?: number;
+  name?: string;
+  cpu?: number;
+  mem?: number;
+  cpuPercent?: number;
+  memPercent?: number;
+}
+
 const isElectron = (): boolean => {
   try {
     return (
@@ -23,8 +32,8 @@ const isElectron = (): boolean => {
 
 export const useProcesses = () => {
   const [processes, setProcesses] = useState<Process[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [loading, setLoading] = useState(false); // Começar como false
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting'); // Começar conectando
   const [filters, setFilters] = useState<ProcessFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -53,6 +62,8 @@ export const useProcesses = () => {
 
     try {
       setConnectionStatus('connecting');
+      setLoading(true);
+      
       const data = await withTimeout(
         window.electronAPI.getProcesses(),
         PROCESS_CONSTANTS.OPERATION_TIMEOUT,
@@ -60,7 +71,7 @@ export const useProcesses = () => {
       );
       
       // Converter para formato Process
-      const formattedProcesses: Process[] = (data || []).map((p: any) => ({
+      const formattedProcesses: Process[] = (data || []).map((p: RawProcess) => ({
         pid: p.pid || 0,
         name: p.name || 'Unknown',
         cpu: p.cpu || 0,
@@ -73,11 +84,22 @@ export const useProcesses = () => {
       setConnectionStatus('connected');
       setLoading(false);
     } catch (error) {
+      console.error('Erro ao buscar processos:', error);
       handleProcessError(error, 'buscar processos');
       setConnectionStatus('error');
+      setProcesses([]); // Garantir que não há processos em caso de erro
       setLoading(false);
+      
+      // Mostrar toast apenas se for erro crítico
+      if (error instanceof Error && !error.message.includes('Timeout')) {
+        toast({
+          title: 'Erro ao carregar processos',
+          description: 'Tente recarregar a página ou reinicie o aplicativo',
+          variant: 'destructive',
+        });
+      }
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     fetchProcesses();

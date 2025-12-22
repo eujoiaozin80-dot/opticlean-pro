@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Gauge, AlertTriangle, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ElectronAPI } from '@/types/electron.d';
 
 interface ProcessPriorityManagerProps {
   pid?: number;
@@ -33,8 +34,8 @@ export const ProcessPriorityManager = ({ pid, name, currentPriority = 'normal', 
     }
     setIsUpdating(true);
     try {
-      if (typeof window !== 'undefined' && (window as any).electronAPI) {
-        await (window as any).electronAPI.setProcessPriority(pid, priority);
+      if (typeof window !== 'undefined' && window.electronAPI) {
+        await window.electronAPI.setProcessPriority(pid, priority);
         toast({ title: 'Prioridade Atualizada', description: `${name} agora tem prioridade ${PRIORITIES.find(p => p.value === priority)?.label}` });
         onClose?.();
       } else {
