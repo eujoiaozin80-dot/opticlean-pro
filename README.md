@@ -1,6 +1,6 @@
 # 🚀 OptiClean Pro
 
-Aplicativo desktop para monitoramento e otimização de sistema Windows, desenvolvido com Electron, React e TypeScript.
+Aplicativo de otimização Windows. Transforme o seu Pc fraco em uma maquina!
 
 ## ✨ Funcionalidades
 
@@ -58,82 +58,6 @@ Aplicativo desktop para monitoramento e otimização de sistema Windows, desenvo
 - npm ou yarn
 - Windows 10/11
 
-### Desenvolvimento
-
-```bash
-# Clonar repositório
-git clone https://github.com/seu-usuario/opticlean-pro.git
-cd opticlean-pro
-
-# Instalar dependências
-npm install
-
-# Configurar variáveis de ambiente
-# Criar arquivo .env.local com:
-VITE_SUPABASE_URL=sua_url_supabase
-VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_supabase
-
-# Executar em desenvolvimento
-npm run dev
-```
-
-### Build para Produção
-
-```bash
-# Build para Windows
-npm run build:win
-
-# O executável estará em: release/
-```
-
-## 🚀 Scripts Disponíveis
-
-- `npm run dev` - Executa React e Electron em desenvolvimento
-- `npm run dev:react` - Apenas React (Vite)
-- `npm run dev:electron` - Apenas Electron
-- `npm run build` - Build completo (React + Electron)
-- `npm run build:win` - Build para Windows
-- `npm run build:clean` - Limpa pastas de build
-- `npm run lint` - Executa ESLint
-
-## 📁 Estrutura do Projeto
-
-```
-opticlean-pro/
-├── electron/           # Código do Electron (main process)
-│   ├── main.js        # Processo principal
-│   └── preload.js     # Preload script (IPC bridge)
-├── src/
-│   ├── components/    # Componentes React
-│   ├── hooks/         # Custom hooks
-│   ├── pages/         # Páginas/rotas
-│   ├── utils/         # Utilitários
-│   ├── integrations/  # Integrações (Supabase)
-│   └── types/         # TypeScript types
-├── public/            # Arquivos estáticos
-└── supabase/          # Migrations do Supabase
-```
-
-## 🔧 Configuração
-
-### Variáveis de Ambiente
-
-Crie um arquivo `.env.local` na raiz do projeto:
-
-```env
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
-```
-
-### Supabase Setup
-
-1. Crie um projeto no [Supabase](https://supabase.com)
-2. Execute as migrations em `supabase/migrations/`
-3. Configure as políticas RLS conforme necessário
-
-Primeira release automatizada 🚀
-
-
 ## 🎯 Uso
 
 ### Primeiro Acesso
@@ -162,35 +86,6 @@ Primeira release automatizada 🚀
 - ✅ Logging estruturado
 - ✅ Validação de processos críticos
 
-## 🐛 Troubleshooting
-
-### Aplicativo não inicia
-- Verifique se Node.js está instalado
-- Execute `npm install` novamente
-- Verifique as variáveis de ambiente
-
-### Métricas não aparecem
-- Certifique-se de executar via Electron (`npm run dev`)
-- Verifique permissões do Windows
-- Veja os logs em `%APPDATA%/OptiClean Pro/logs/`
-
-### Erro de autenticação
-- Verifique as credenciais do Supabase
-- Confirme que as migrations foram executadas
-- Verifique a conexão com a internet
-
-## 📝 Licença
-
-Este projeto é privado e proprietário.
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
 ## 📧 Suporte
 
 Para suporte, abra uma issue no GitHub ou entre em contato via email.
@@ -209,5 +104,5 @@ Para suporte, abra uma issue no GitHub ou entre em contato via email.
 ---
 Release pipeline configurado com sucesso 🚀
 
-**Desenvolvido com ❤️ usando Electron e React**
+**Desenvolvido com ❤️**
 
