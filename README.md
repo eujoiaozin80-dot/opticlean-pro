@@ -1,7 +1,7 @@
 # 🚀 Byte Latency
 
 Aplicativo de otimização Windows. Transforme o seu Pc fraco em uma maquina!
-
+aaa
 ## ✨ Funcionalidades
 
 ### 📊 Monitoramento em Tempo Real
