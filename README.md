@@ -1,4 +1,4 @@
-# 🚀 OptiClean Pro
+# 🚀 Byte Latency
 
 Aplicativo de otimização Windows. Transforme o seu Pc fraco em uma maquina!
 

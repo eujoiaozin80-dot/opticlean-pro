@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { ProcessHistory, Process } from '@/types/process';
 
-const STORAGE_KEY = 'opticlean_process_history';
+const STORAGE_KEY = 'byte-latency_process_history';
 const MAX_HISTORY_ITEMS = 50;
 
 export const useProcessHistory = () => {

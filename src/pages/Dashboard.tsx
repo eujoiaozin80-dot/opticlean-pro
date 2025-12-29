@@ -3,13 +3,18 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ProgressDialog } from '@/components/ProgressDialog';
-import { QuickNotes } from '@/components/QuickNotes';
-import { ResourcePredictions } from '@/components/ResourcePredictions';
-import { ProcessShortcuts } from '@/components/ProcessShortcuts';
+import { QuickOptimizations } from '@/components/QuickOptimizations';
 import { 
-  Trash2, 
   Zap, 
-  Activity, 
+  Settings, 
+  Shield, 
+  CheckCircle,
+  XCircle,
+  FileText,
+  Play,
+  Loader2,
+  Info,
+  Trash2, 
   Cpu, 
   MemoryStick, 
   HardDrive, 
@@ -17,18 +22,13 @@ import {
   Thermometer,
   WifiOff, 
   RefreshCw, 
-  AlertCircle,
+  AlertTriangle,
   TrendingUp,
   ArrowUpRight,
   Clock,
   Monitor,
   Bell,
-  AlertTriangle,
-  Settings,
-  Database,
-  Wifi,
-  Gauge,
-  FileCode
+  AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSystemStats } from '@/hooks/useSystemStats';
@@ -36,13 +36,23 @@ import { useSystemActions } from '@/hooks/useSystemActions';
 import { useToast } from '@/hooks/use-toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import logoLatency from "/Latency.png";
+import { OutletContext } from '@/types/outlet-context';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
 const Dashboard = ({ className, ...props }: DashboardProps) => {
+  // Obter informações do usuário do contexto
+  const { userId, userRole, isFounder } = useOutletContext<OutletContext>();
+  
+  // Estado para o nome do usuário
+  const [userName, setUserName] = useState<string>('');
+  
   // Chamar hooks incondicionalmente (regra do React)
   const systemStats = useSystemStats();
   const systemActions = useSystemActions();
@@ -138,6 +148,33 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
 
   const diskPercent = disk.total > 0 ? Math.round((disk.used / disk.total) * 100) : 0;
 
+  // Carregar nome do usuário
+  useEffect(() => {
+    const loadUserName = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', userId)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Erro ao carregar nome do usuário:', error);
+          return;
+        }
+
+        const name = data?.full_name || data?.email?.split('@')[0] || 'Usuário';
+        setUserName(name);
+      } catch (error) {
+        console.error('Erro ao carregar perfil:', error);
+      }
+    };
+
+    loadUserName();
+  }, [userId]);
+
   const actions = [
     {
       title: 'Limpeza do Sistema',
@@ -146,253 +183,25 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
       action: cleanSystem,
       color: 'primary',
       gradient: 'from-primary/10 to-primary/5'
-    },
-    {
-      title: 'Otimização Geral',
-      description: 'Melhorar desempenho geral',
-      icon: Zap,
-      action: optimizeSystem,
-      color: 'secondary',
-      gradient: 'from-secondary/10 to-secondary/5'
-    },
-    {
-      title: 'Análise Completa',
-      description: 'Verificar integridade',
-      icon: Activity,
-      action: analyzeSystem,
-      color: 'accent',
-      gradient: 'from-accent/10 to-accent/5'
     }
   ];
 
-  // Funções de otimização avançadas
-  const optimizeDisk = async () => {
-    if (!isElectron) {
-      toast({
-        title: "Modo Desktop Necessário",
-        description: "Execute o aplicativo .exe para usar esta função",
-        variant: "default",
-      });
-      return;
-    }
-    
-    try {
-      const result = await window.electronAPI.optimizeDisk();
-      if (result.success) {
-        toast({
-          title: "Disco Otimizado",
-          description: result.message || `${result.freeSpace}GB livres agora`,
-        });
-      } else {
-        toast({
-          title: "Erro",
-          description: result.error || "Erro ao otimizar disco",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Otimização de Disco",
-        description: "Limpeza de arquivos temporários concluída",
-      });
-    }
-  };
-
-  const optimizeNetwork = async () => {
-    if (!isElectron) {
-      toast({
-        title: "Modo Desktop Necessário",
-        description: "Execute o aplicativo .exe para usar esta função",
-        variant: "default",
-      });
-      return;
-    }
-    
-    try {
-      const result = await window.electronAPI.optimizeNetwork();
-      if (result.success) {
-        toast({
-          title: "Rede Otimizada",
-          description: result.message || "Configurações de rede atualizadas",
-        });
-      } else {
-        toast({
-          title: "Erro",
-          description: result.error || "Erro ao otimizar rede",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Otimização de Rede",
-        description: "Cache DNS limpo e configurações atualizadas",
-      });
-    }
-  };
-
-  const optimizeRegistry = async () => {
-    if (!isElectron) {
-      toast({
-        title: "Modo Desktop Necessário",
-        description: "Execute o aplicativo .exe para usar esta função",
-        variant: "default",
-      });
-      return;
-    }
-    
-    try {
-      const result = await window.electronAPI.cleanRegistry();
-      if (result.success) {
-        toast({
-          title: "Registro Limpo",
-          description: result.message || "Entradas inválidas removidas",
-        });
-      } else {
-        toast({
-          title: "Erro",
-          description: result.error || "Erro ao limpar registro",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Limpeza de Registro",
-        description: "Histórico e cache removidos",
-      });
-    }
-  };
-
-  const optimizeStartup = async () => {
-    if (!isElectron) {
-      toast({
-        title: "Modo Desktop Necessário",
-        description: "Execute o aplicativo .exe para usar esta função",
-        variant: "default",
-      });
-      return;
-    }
-    // Redirecionar para página de startup
-    window.location.href = '/startup';
-  };
-
-  const optimizeMemoryAdvanced = async () => {
-    if (!isElectron) {
-      toast({
-        title: "Modo Desktop Necessário",
-        description: "Execute o aplicativo .exe para usar esta função",
-        variant: "default",
-      });
-      return;
-    }
-    
-    try {
-      const result = await window.electronAPI.optimizeMemory();
-      if (result.success) {
-        toast({
-          title: "Memória Otimizada",
-          description: `${result.freedMB}MB liberados. Uso: ${result.memoryAfter}%`,
-        });
-      } else {
-        toast({
-          title: "Erro",
-          description: result.error || "Erro ao otimizar memória",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      // Fallback para otimização geral
-      optimizeSystem();
-    }
-  };
-
-  const optimizeCpuAdvanced = async () => {
-    if (!isElectron) {
-      toast({
-        title: "Modo Desktop Necessário",
-        description: "Execute o aplicativo .exe para usar esta função",
-        variant: "default",
-      });
-      return;
-    }
-    
-    try {
-      const result = await window.electronAPI.optimizeCpu();
-      if (result.success) {
-        toast({
-          title: "CPU Otimizada",
-          description: result.message || `${result.processesOptimized} processos ajustados`,
-        });
-      } else {
-        toast({
-          title: "Erro",
-          description: result.error || "Erro ao otimizar CPU",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      // Fallback para otimização geral
-      optimizeSystem();
-    }
-  };
-
-  const optimizationOptions = [
-    {
-      title: 'Otimização de Disco',
-      description: 'Desfragmentar e otimizar unidades',
-      icon: HardDrive,
-      action: optimizeDisk,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10'
-    },
-    {
-      title: 'Otimização de Rede',
-      description: 'Ajustar configurações de rede',
-      icon: Wifi,
-      action: optimizeNetwork,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10'
-    },
-    {
-      title: 'Limpeza de Registro',
-      description: 'Remover entradas inválidas',
-      icon: FileCode,
-      action: optimizeRegistry,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-500/10'
-    },
-    {
-      title: 'Programas de Inicialização',
-      description: 'Gerenciar apps que iniciam com Windows',
-      icon: Settings,
-      action: optimizeStartup,
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-500/10'
-    },
-    {
-      title: 'Otimização de Memória',
-      description: 'Liberar e otimizar RAM',
-      icon: MemoryStick,
-      action: optimizeMemoryAdvanced,
-      color: 'text-cyan-500',
-      bgColor: 'bg-cyan-500/10'
-    },
-    {
-      title: 'Otimização de CPU',
-      description: 'Ajustar prioridades de processos',
-      icon: Cpu,
-      action: optimizeCpuAdvanced,
-      color: 'text-red-500',
-      bgColor: 'bg-red-500/10'
-    }
-  ];
-
+  
+  
   return (
     <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Monitore e otimize o sistema</p>
+        <div className="flex items-center gap-3">
+          <img 
+            src={logoLatency} 
+            alt="Latency" 
+            className="w-8 h-8"
+          />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-1">{userName || 'Dashboard'}</h1>
+            <p className="text-muted-foreground text-sm">Monitore e otimize o sistema</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Indicador de Alertas */}
@@ -452,7 +261,7 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {actions.map((item, index) => (
           <Card 
             key={item.title} 
@@ -483,47 +292,34 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
             </CardContent>
           </Card>
         ))}
+        
+        {/* Componente de Otimizações Rápidas */}
+        <QuickOptimizations />
+        
+        {/* Botão para Otimizações Completas */}
+        <Card className="metric-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Otimizações Completas</h3>
+              </div>
+              <Badge variant="secondary">Admin</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Acesse todas as otimizações avançadas do sistema
+            </p>
+            <Link to="/optimization">
+              <Button className="w-full">
+                <Settings className="w-4 h-4 mr-2" />
+                Gerenciar Otimizações
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Opções de Otimização Avançadas */}
-      <Card className="metric-card">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Gauge className="w-5 h-5 text-secondary" />
-            Otimizações Avançadas
-          </CardTitle>
-          <CardDescription>
-            Opções específicas para melhorar diferentes aspectos do sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {optimizationOptions.map((option, index) => {
-              const Icon = option.icon;
-              return (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className={`h-auto p-4 flex flex-col items-start gap-2 hover:scale-105 transition-all ${option.bgColor} border-border/50 hover:border-primary/50`}
-                  onClick={option.action}
-                  disabled={isProcessing && !isElectron}
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <Icon className={`w-5 h-5 ${option.color}`} />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-sm">{option.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {option.description}
-                      </div>
-                    </div>
-                  </div>
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
+      
       {/* Status Banner */}
       {connectionStatus === 'disconnected' && (
         <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-border animate-fade-in">
@@ -736,16 +532,7 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
         </Card>
       </div>
 
-      {/* Quick Notes, Resource Predictions, Process Shortcuts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <QuickNotes />
-        <ResourcePredictions 
-          cpuHistory={cpuHistory}
-          memoryHistory={memoryHistory}
-        />
-        <ProcessShortcuts />
-      </div>
-
+      
       {/* Link to Full Monitoring */}
       <Card className="metric-card border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
         <CardContent className="p-4">

@@ -1,6 +1,6 @@
 {
-  "appId": "com.opticlean.pro",
-  "productName": "OptiClean Pro",
+  "appId": "com.bytelatency.app",
+  "productName": "Byte Latency",
   "directories": {
     "output": "release",
     "buildResources": "public"
@@ -24,7 +24,7 @@
         "arch": ["x64"]
       }
     ],
-    "icon": "public/logo-opticlean.png",
+    "icon": "public/Latency.png",
     "requestedExecutionLevel": "requireAdministrator"
   },
   "nsis": {
@@ -33,7 +33,7 @@
     "allowElevation": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "OptiClean Pro",
+    "shortcutName": "Byte Latency",
     "deleteAppDataOnUninstall": true
   },
   "portable": {
@@ -41,12 +41,12 @@
   },
   "mac": {
     "target": ["dmg"],
-    "icon": "public/Logo1.png",
+    "icon": "public/Latency.png",
     "category": "public.app-category.utilities"
   },
   "linux": {
     "target": ["AppImage"],
-    "icon": "public/Logo1.png",
+    "icon": "public/Latency.png",
     "category": "Utility"
   }
 }

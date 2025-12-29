@@ -6,62 +6,129 @@
 
 @layer base {
   :root {
-    /* OptiClean Pro - Enterprise Design System */
+    /* Byte Latency - Enterprise Design System - Dark Theme */
     --background: 222 47% 6%;
     --background-alt: 220 45% 8%;
     --foreground: 210 40% 98%;
 
-    --card: 220 45% 9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 220 45% 9%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary - Electric Blue */
-    --primary: 210 100% 56%;
-    --primary-foreground: 222 47% 6%;
-    --primary-glow: 210 100% 66%;
+    /* Primary - Byte Latency Blue (#2026) */
+    --primary: 220 100% 12%; /* #2026 - Azul escuro Byte Latency */
+    --primary-foreground: 210 40% 98%;
+    --primary-glow: 220 100% 18%;
 
-    /* Secondary - Violet */
-    --secondary: 262 83% 58%;
-    --secondary-foreground: 210 40% 98%;
-    --secondary-glow: 262 83% 68%;
+    /* Secondary - Complementary Blue */
+    --secondary: 210 80% 50%;
+    --secondary-foreground: 222 47% 6%;
+    --secondary-glow: 210 80% 55%;
 
-    /* Accent - Emerald */
-    --accent: 160 84% 39%;
-    --accent-foreground: 210 40% 98%;
+    /* Accent - Electric Cyan */
+    --accent: 185 100% 50%;
+    --accent-foreground: 222 47% 6%;
 
     /* Success */
-    --success: 142 76% 46%;
-    --success-foreground: 222 47% 6%;
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
 
     /* Warning */
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 6%;
 
-    --muted: 220 30% 16%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 45% 12%;
+    --muted-foreground: 210 40% 60%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 30% 18%;
-    --input: 220 40% 12%;
-    --ring: 210 100% 56%;
+    --border: 220 45% 15%;
+    --input: 220 45% 12%;
+    --ring: 220 100% 12%;
 
-    --radius: 0.625rem;
+    /* Dark Theme Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(220 100% 12%) 0%, hsl(210 80% 50%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(222 47% 8%) 0%, hsl(220 45% 6%) 100%);
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(220 100% 12% / 0.15), transparent 50%);
 
-    /* Enterprise Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(210 100% 56%) 0%, hsl(262 83% 58%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(220 45% 9%) 0%, hsl(222 47% 6%) 100%);
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(210 100% 56% / 0.15), transparent 50%);
-
-    /* Shadows */
+    /* Dark Theme Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-glow-primary: 0 0 30px hsl(210 100% 56% / 0.2);
-    --shadow-glow-secondary: 0 0 30px hsl(262 83% 58% / 0.2);
+    --shadow-glow-primary: 0 0 30px hsl(220 100% 12% / 0.2);
+    --shadow-glow-secondary: 0 0 30px hsl(210 80% 50% / 0.2);
+  }
+
+  /* Light Theme */
+  .light {
+    /* Byte Latency - Light Theme - Very Soft Colors */
+    --background: 0 0% 96%; /* Cinza muito claro, quase branco */
+    --background-alt: 0 0% 94%; /* Cinza claro */
+    --foreground: 0 0% 20%; /* Cinza médio escuro */
+
+    --card: 0 0% 98%; /* Cards levemente acinzentados */
+    --card-foreground: 0 0% 20%;
+
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 20%;
+
+    /* Primary - Byte Latency Blue (#2026) - mais suave */
+    --primary: 220 100% 25%; /* #2026 mais claro para tema claro */
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 220 100% 30%;
+
+    /* Secondary - Violet (muito suave) */
+    --secondary: 262 60% 45%;
+    --secondary-foreground: 0 0% 98%;
+    --secondary-glow: 262 60% 50%;
+
+    /* Accent - Electric Cyan */
+    --accent: 185 100% 50%;
+    --accent-foreground: 222 47% 6%;
+
+    /* Success */
+    --success: 142 50% 35%;
+    --success-foreground: 0 0% 98%;
+
+    /* Warning */
+    --warning: 38 65% 40%;
+    --warning-foreground: 0 0% 98%;
+
+    --muted: 0 0% 92%; /* Cinza muito suave */
+    --muted-foreground: 0 0% 45%; /* Cinza médio */
+
+    --destructive: 0 60% 50%; /* Vermelho bem suave */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 85%; /* Bordas muito suaves */
+    --input: 0 0% 90%; /* Inputs muito suaves */
+    --ring: 220 100% 25%;
+
+    /* Light Theme Gradients - quase invisíveis */
+    --gradient-primary: linear-gradient(135deg, hsl(220 100% 25%) 0%, hsl(262 60% 45%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(0 0% 94%) 100%);
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(220 100% 25% / 0.02), transparent 50%); /* Glow quase invisível */
+
+    /* Light Theme Shadows - extremamente suaves */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.02);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    --shadow-glow-primary: 0 0 15px hsl(220 100% 25% / 0.05); /* Glow quase invisível */
+    --shadow-glow-secondary: 0 0 15px hsl(262 60% 45% / 0.05);
+  }
+
+  /* Reduzir brilho ainda mais para telas sensíveis */
+  @media (prefers-contrast: less) {
+    .light {
+      --background: 0 0% 95%; /* Ainda mais suave */
+      --foreground: 0 0% 25%; /* Um pouco mais escuro para legibilidade */
+      --muted: 0 0% 90%;
+      --muted-foreground: 0 0% 40%;
+      --border: 0 0% 80%;
+    }
   }
 }
 

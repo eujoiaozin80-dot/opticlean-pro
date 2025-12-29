@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { PROCESS_CONSTANTS } from '@/constants/processes';
 
-const STORAGE_KEY = 'opticlean_protected_processes';
+const STORAGE_KEY = 'byte-latency_protected_processes';
 
 export const useProtectedProcesses = () => {
   const [protectedProcesses, setProtectedProcesses] = useState<string[]>([]);

@@ -153,6 +153,7 @@ const Index = ({ className, ...props }: IndexProps) => {
 
   // Loading state
   if (loading) {
+    console.log('Index: Loading state', loading);
     return (
       <div className={`min-h-screen bg-background relative flex items-center justify-center ${className || ''}`} {...props}>
         <ParticlesBackground />
@@ -168,6 +169,7 @@ const Index = ({ className, ...props }: IndexProps) => {
 
   // Login screen
   if (!isAuthenticated) {
+    console.log('Index: Showing login screen', { isAuthenticated, loading, showWelcome });
     return (
       <div className={`min-h-screen bg-background relative ${className || ''}`} {...props}>
         <ParticlesBackground />

@@ -2,8 +2,6 @@
  * Utilitário centralizado para tratamento de erros
  */
 
-import { toast } from '@/hooks/use-toast';
-
 export interface ErrorContext {
   context: string;
   userId?: string;
@@ -47,11 +45,8 @@ export function handleProcessError(
     additionalData,
   });
 
-  toast({
-    title: 'Erro',
-    description: `Não foi possível ${context}: ${errorMessage}`,
-    variant: 'destructive',
-  });
+  // Não exibir toast aqui - deixar para o componente tratar
+  console.error(`Erro ao ${context}: ${errorMessage}`);
 }
 
 /**

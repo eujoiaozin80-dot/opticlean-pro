@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import UserProfile from '@/components/UserProfile';
 import { OutletContext } from '@/types/outlet-context';
@@ -11,19 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useTheme } from '@/hooks/useTheme';
-import { useOperationHistory } from '@/hooks/useOperationHistory';
+import { useLanguage } from '@/hooks/useLanguage';
 import { useSystemStats } from '@/hooks/useSystemStats';
-import { generatePdfReport } from '@/utils/generatePdfReport';
-import { ScheduledTasksPanel } from '@/components/ScheduledTasksPanel';
-import { LoginHistoryPanel } from '@/components/LoginHistoryPanel';
 import { DiscordSettings } from '@/components/DiscordSettings';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  User, Settings2, Sun, Moon, Bell, Download, History, 
+  User, Settings2, Sun, Moon, Bell, Download, 
   Trash2, Shield, Clock, CheckCircle, AlertCircle, Loader2,
-  FileText, Calendar, RefreshCw, Lock, Palette, Volume2, VolumeX,
-  Monitor, Gauge, Database, Keyboard, Globe, Info, MessageSquare,
-  Cpu, MemoryStick, HardDrive, Wifi, Languages, Accessibility
+  FileText, RefreshCw, Lock, Palette, Volume2, VolumeX,
+  Monitor, Gauge, Wifi, Languages, Accessibility, Camera, Upload
 } from 'lucide-react';
 import { UpdateDialog } from '@/components/UpdateDialog';
 
@@ -55,9 +51,10 @@ interface AppSettings {
   startWithWindows: boolean;
   minimizeToTray: boolean;
   
-  // Dados
-  keepHistoryDays: number;
-  autoExportReports: boolean;
+  // Perfil
+  profileImage: string;
+  userName: string;
+  userEmail: string;
   
   // Acessibilidade
   highContrast: boolean;
@@ -84,8 +81,9 @@ const defaultSettings: AppSettings = {
   autoOptimize: false,
   startWithWindows: false,
   minimizeToTray: true,
-  keepHistoryDays: 30,
-  autoExportReports: false,
+  profileImage: '',
+  userName: '',
+  userEmail: '',
   highContrast: false,
   reducedMotion: false,
   language: 'pt-BR',
@@ -93,750 +91,631 @@ const defaultSettings: AppSettings = {
 
 const Settings = ({ className, ...props }: SettingsProps) => {
   const { userId } = useOutletContext<OutletContext>();
-  const { theme, toggleTheme } = useTheme();
-  const { operations, loading: historyLoading } = useOperationHistory(userId);
+  const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const systemStats = useSystemStats();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
-  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
-  const [appVersion, setAppVersion] = useState<string>('');
-  const [clearingCache, setClearingCache] = useState(false);
-  const [exportingData, setExportingData] = useState(false);
-  
-  // Carregar configurações salvas
-  useEffect(() => {
-    const saved = localStorage.getItem('app_settings');
-    if (saved) {
-      const parsed = { ...defaultSettings, ...JSON.parse(saved) };
-      setAppSettings(parsed);
-      applyVisualSettings(parsed);
-    }
-  }, []);
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  const [loading, setLoading] = useState(false);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>('');
 
-  // Aplicar configurações visuais no DOM
-  const applyVisualSettings = (settings: AppSettings) => {
+  // Carregar configurações do localStorage
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('appSettings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        setSettings({ ...defaultSettings, ...parsed });
+        if (parsed.profileImage) {
+          setProfileImagePreview(parsed.profileImage);
+        }
+        // Sincronizar com os hooks
+        if (parsed.theme) setTheme(parsed.theme);
+        if (parsed.language) setLanguage(parsed.language);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error);
+    }
+  }, [setTheme, setLanguage]);
+
+  // Salvar configurações no localStorage
+  const saveSettings = (newSettings: Partial<AppSettings>) => {
+    try {
+      const updatedSettings = { ...settings, ...newSettings };
+      setSettings(updatedSettings);
+      localStorage.setItem('appSettings', JSON.stringify(updatedSettings));
+      
+      // Sincronizar com os hooks
+      if (newSettings.theme !== undefined) setTheme(newSettings.theme);
+      if (newSettings.language !== undefined) setLanguage(newSettings.language as 'pt-BR' | 'en-US' | 'es-ES');
+      
+      toast({
+        title: 'Configurações salvas',
+        description: 'Suas configurações foram salvas com sucesso',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar as configurações',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Função para upload de imagem
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'Arquivo muito grande',
+          description: 'A imagem deve ter no máximo 5MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        setProfileImagePreview(imageUrl);
+        saveSettings({ profileImage: imageUrl });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Função para remover imagem
+  const handleRemoveImage = () => {
+    setProfileImagePreview('');
+    saveSettings({ profileImage: '' });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Aplicar configurações de aparência (exceto tema)
+  useEffect(() => {
     const root = document.documentElement;
     
-    // Tamanho da fonte
+    // Font size
     root.style.fontSize = `${settings.fontSize}px`;
-    
-    // Modo compacto
+
+    // Compact mode
     if (settings.compactMode) {
       root.classList.add('compact-mode');
     } else {
       root.classList.remove('compact-mode');
     }
-    
-    // Animações
-    if (!settings.animations || settings.reducedMotion) {
-      root.classList.add('reduce-motion');
-    } else {
+
+    // Animations
+    if (settings.animations) {
       root.classList.remove('reduce-motion');
+    } else {
+      root.classList.add('reduce-motion');
     }
-    
-    // Alto contraste
+
+    // High contrast
     if (settings.highContrast) {
       root.classList.add('high-contrast');
     } else {
       root.classList.remove('high-contrast');
     }
-  };
 
-  // Salvar configurações
-  const saveSettings = (newSettings: Partial<AppSettings>) => {
-    const updated = { ...appSettings, ...newSettings };
-    setAppSettings(updated);
-    localStorage.setItem('app_settings', JSON.stringify(updated));
-    applyVisualSettings(updated);
-    toast({ title: 'Configuração salva', description: 'Alteração aplicada com sucesso!' });
-  };
-  
-  const exportPdfReport = () => {
-    try {
-      generatePdfReport({
-        metrics: {
-          cpu: systemStats.cpu || { usageTotal: 0, speed: 0, usagePerCore: [] },
-          memory: systemStats.memory || { total: 0, used: 0, free: 0, percent: 0 },
-          disk: systemStats.disk || { total: 0, used: 0, free: 0 },
-          network: systemStats.network || { rx: 0, tx: 0, interface: 'N/A' },
-          temperature: systemStats.temperature || { cpu: null },
-        },
-        operations,
-        cpuHistory: systemStats.cpuHistory || [],
-        memoryHistory: systemStats.memoryHistory || [],
-      });
-      toast({ title: 'Relatório Exportado', description: 'PDF salvo com sucesso!' });
-    } catch (error) {
-      toast({ title: 'Erro', description: 'Falha ao gerar PDF', variant: 'destructive' });
+    // Reduced motion
+    if (settings.reducedMotion) {
+      root.classList.add('reduce-motion');
+    } else {
+      root.classList.remove('reduce-motion');
     }
-  };
+  }, [settings.fontSize, settings.compactMode, settings.animations, settings.highContrast, settings.reducedMotion]);
 
-  const exportAllData = async () => {
-    setExportingData(true);
-    try {
-      const data = {
-        settings: appSettings,
-        operations,
-        systemStats: {
-          cpu: systemStats.cpu,
-          memory: systemStats.memory,
-          disk: systemStats.disk,
-        },
-        exportDate: new Date().toISOString(),
-      };
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `opticlean-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({ title: 'Dados Exportados', description: 'Backup salvo com sucesso!' });
-    } catch (error) {
-      toast({ title: 'Erro', description: 'Falha ao exportar dados', variant: 'destructive' });
-    } finally {
-      setExportingData(false);
-    }
-  };
-
-  const clearCache = async () => {
-    setClearingCache(true);
-    try {
-      // Limpar localStorage exceto configurações essenciais
-      const keysToKeep = ['app_settings', 'discord_webhook_url', 'discord_notifications_enabled'];
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (!keysToKeep.includes(key)) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      toast({ title: 'Cache Limpo', description: 'Dados em cache foram removidos' });
-    } catch (error) {
-      toast({ title: 'Erro', description: 'Falha ao limpar cache', variant: 'destructive' });
-    } finally {
-      setClearingCache(false);
-    }
-  };
-
-  const resetSettings = () => {
-    setAppSettings(defaultSettings);
-    localStorage.setItem('app_settings', JSON.stringify(defaultSettings));
-    toast({ title: 'Configurações Resetadas', description: 'Voltou para configurações padrão' });
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-  };
-
-  const getOperationIcon = (type: string) => {
-    switch (type) {
-      case 'cleaning': return <Trash2 className="w-4 h-4 text-primary" />;
-      case 'optimization': return <Settings2 className="w-4 h-4 text-secondary" />;
-      case 'security': return <Shield className="w-4 h-4 text-success" />;
-      default: return <Clock className="w-4 h-4 text-muted-foreground" />;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return <CheckCircle className="w-3.5 h-3.5 text-success" />;
-      case 'failed': return <AlertCircle className="w-3.5 h-3.5 text-destructive" />;
-      default: return <Clock className="w-3.5 h-3.5 text-warning" />;
-    }
-  };
-
-  // Obter versão do app
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      window.electronAPI.getAppVersion().then(version => {
-        setAppVersion(version);
-      });
-    }
-  }, []);
-
-  // Atalhos de teclado
-  const shortcuts = [
-    { keys: 'Ctrl + 1', action: 'Limpeza rápida' },
-    { keys: 'Ctrl + 2', action: 'Otimização' },
-    { keys: 'Ctrl + 3', action: 'Análise completa' },
-    { keys: 'Ctrl + R', action: 'Atualizar métricas' },
-    { keys: 'Ctrl + E', action: 'Exportar relatório' },
-  ];
   
   return (
     <div className={`space-y-6 animate-fade-up ${className || ''}`} {...props}>
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground mb-1">Configurações</h1>
-          <p className="text-muted-foreground text-sm">Personalize sua experiência no OptiClean Pro</p>
+          <p className="text-muted-foreground text-sm">Personalize sua experiência no Byte Latency</p>
         </div>
-        {appVersion && (
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <Info className="w-3 h-3" />
-            Versão {appVersion}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => saveSettings(defaultSettings)}>
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Restaurar Padrão
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="glass-strong border border-border/50 flex-wrap h-auto p-1">
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="w-4 h-4" />Perfil
+            <User className="w-4 h-4" />
+            Perfil
           </TabsTrigger>
           <TabsTrigger value="appearance" className="flex items-center gap-2">
-            <Palette className="w-4 h-4" />Aparência
+            <Palette className="w-4 h-4" />
+            Aparência
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />Notificações
-          </TabsTrigger>
-          <TabsTrigger value="discord" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />Discord
+            <Bell className="w-4 h-4" />
+            Notificações
           </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
-            <Settings2 className="w-4 h-4" />Sistema
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Lock className="w-4 h-4" />Segurança
-          </TabsTrigger>
-          <TabsTrigger value="schedule" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />Agendamento
-          </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2">
-            <Database className="w-4 h-4" />Dados
-          </TabsTrigger>
-          <TabsTrigger value="shortcuts" className="flex items-center gap-2">
-            <Keyboard className="w-4 h-4" />Atalhos
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="w-4 h-4" />Histórico
+            <Gauge className="w-4 h-4" />
+            Sistema
           </TabsTrigger>
         </TabsList>
 
         {/* Perfil */}
-        <TabsContent value="profile">
-          <UserProfile userId={userId} />
-        </TabsContent>
-
-        {/* Aparência */}
-        <TabsContent value="appearance" className="space-y-4">
-          <div className="grid gap-4 max-w-2xl">
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  {theme === 'dark' ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-warning" />}
-                  <CardTitle className="text-sm font-medium">Tema</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Sun className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">Claro</span>
-                  </div>
-                  <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm">Escuro</span>
-                    <Moon className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-secondary" />
-                  <CardTitle className="text-sm font-medium">Personalização Visual</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Tamanho da Fonte</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[appSettings.fontSize]}
-                      onValueChange={([value]) => saveSettings({ fontSize: value })}
-                      min={12}
-                      max={18}
-                      step={1}
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-muted-foreground w-8">{appSettings.fontSize}px</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Modo Compacto</Label>
-                    <p className="text-xs text-muted-foreground">Reduz espaçamentos</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.compactMode}
-                    onCheckedChange={(value) => saveSettings({ compactMode: value })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Animações</Label>
-                    <p className="text-xs text-muted-foreground">Transições e efeitos</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.animations}
-                    onCheckedChange={(value) => saveSettings({ animations: value })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Accessibility className="w-4 h-4 text-accent" />
-                  <CardTitle className="text-sm font-medium">Acessibilidade</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Alto Contraste</Label>
-                    <p className="text-xs text-muted-foreground">Aumenta contraste visual</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.highContrast}
-                    onCheckedChange={(value) => saveSettings({ highContrast: value })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Reduzir Movimentos</Label>
-                    <p className="text-xs text-muted-foreground">Minimiza animações</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.reducedMotion}
-                    onCheckedChange={(value) => saveSettings({ reducedMotion: value })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Notificações */}
-        <TabsContent value="notifications" className="space-y-4">
-          <div className="grid gap-4 max-w-2xl">
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-secondary" />
-                  <CardTitle className="text-sm font-medium">Notificações Desktop</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Alertas do Sistema</Label>
-                    <p className="text-xs text-muted-foreground">Notificações do Windows</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.desktopNotifications}
-                    onCheckedChange={(value) => saveSettings({ desktopNotifications: value })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  {appSettings.soundEnabled ? <Volume2 className="w-4 h-4 text-primary" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
-                  <CardTitle className="text-sm font-medium">Sons</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Sons de Notificação</Label>
-                  <Switch
-                    checked={appSettings.soundEnabled}
-                    onCheckedChange={(value) => saveSettings({ soundEnabled: value })}
-                  />
-                </div>
-                
-                {appSettings.soundEnabled && (
-                  <div className="space-y-2">
-                    <Label className="text-sm">Volume</Label>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[appSettings.soundVolume]}
-                        onValueChange={([value]) => saveSettings({ soundVolume: value })}
-                        min={0}
-                        max={100}
-                        step={10}
-                        className="flex-1"
-                      />
-                      <span className="text-sm text-muted-foreground w-8">{appSettings.soundVolume}%</span>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Gauge className="w-4 h-4 text-accent" />
-                  <CardTitle className="text-sm font-medium">Limites de Alerta</CardTitle>
-                </div>
-                <CardDescription className="text-xs">
-                  Defina quando receber alertas de recursos
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-primary" />
-                    <Label className="text-sm">Alerta de CPU</Label>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[appSettings.cpuAlertThreshold]}
-                      onValueChange={([value]) => saveSettings({ cpuAlertThreshold: value })}
-                      min={50}
-                      max={95}
-                      step={5}
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-muted-foreground w-12">{appSettings.cpuAlertThreshold}%</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <MemoryStick className="w-4 h-4 text-secondary" />
-                    <Label className="text-sm">Alerta de Memória</Label>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[appSettings.memoryAlertThreshold]}
-                      onValueChange={([value]) => saveSettings({ memoryAlertThreshold: value })}
-                      min={50}
-                      max={95}
-                      step={5}
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-muted-foreground w-12">{appSettings.memoryAlertThreshold}%</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <HardDrive className="w-4 h-4 text-accent" />
-                    <Label className="text-sm">Alerta de Disco</Label>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[appSettings.diskAlertThreshold]}
-                      onValueChange={([value]) => saveSettings({ diskAlertThreshold: value })}
-                      min={70}
-                      max={98}
-                      step={2}
-                      className="flex-1"
-                    />
-                    <span className="text-sm text-muted-foreground w-12">{appSettings.diskAlertThreshold}%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Discord */}
-        <TabsContent value="discord">
-          <div className="max-w-2xl">
-            <DiscordSettings />
-          </div>
-        </TabsContent>
-
-        {/* Sistema */}
-        <TabsContent value="system" className="space-y-4">
-          <div className="grid gap-4 max-w-2xl">
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Monitor className="w-4 h-4 text-primary" />
-                  <CardTitle className="text-sm font-medium">Comportamento</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Iniciar com Windows</Label>
-                    <p className="text-xs text-muted-foreground">Abrir automaticamente</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.startWithWindows}
-                    onCheckedChange={(value) => saveSettings({ startWithWindows: value })}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Minimizar para Bandeja</Label>
-                    <p className="text-xs text-muted-foreground">Ao fechar janela</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.minimizeToTray}
-                    onCheckedChange={(value) => saveSettings({ minimizeToTray: value })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Trash2 className="w-4 h-4 text-secondary" />
-                  <CardTitle className="text-sm font-medium">Limpeza Automática</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Ativar Limpeza Automática</Label>
-                    <p className="text-xs text-muted-foreground">Limpar arquivos temporários</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.autoClean}
-                    onCheckedChange={(value) => saveSettings({ autoClean: value })}
-                  />
-                </div>
-
-                {appSettings.autoClean && (
-                  <div className="space-y-2">
-                    <Label className="text-sm">Intervalo (horas)</Label>
-                    <Select
-                      value={String(appSettings.autoCleanInterval)}
-                      onValueChange={(value) => saveSettings({ autoCleanInterval: Number(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="6">A cada 6 horas</SelectItem>
-                        <SelectItem value="12">A cada 12 horas</SelectItem>
-                        <SelectItem value="24">Diariamente</SelectItem>
-                        <SelectItem value="168">Semanalmente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Otimização Automática</Label>
-                    <p className="text-xs text-muted-foreground">Quando CPU/RAM altos</p>
-                  </div>
-                  <Switch
-                    checked={appSettings.autoOptimize}
-                    onCheckedChange={(value) => saveSettings({ autoOptimize: value })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {typeof window !== 'undefined' && window.electronAPI && (
-              <Card className="metric-card">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 text-accent" />
-                    <CardTitle className="text-sm font-medium">Atualizações</CardTitle>
-                  </div>
-                  <CardDescription className="text-xs">
-                    {appVersion && `Versão atual: ${appVersion}`}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    onClick={() => setShowUpdateDialog(true)} 
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Verificar Atualizações
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Segurança */}
-        <TabsContent value="security">
-          <LoginHistoryPanel userId={userId} />
-        </TabsContent>
-
-        {/* Agendamento */}
-        <TabsContent value="schedule">
-          <ScheduledTasksPanel />
-        </TabsContent>
-
-        {/* Dados */}
-        <TabsContent value="data" className="space-y-4">
-          <div className="grid gap-4 max-w-2xl">
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Download className="w-4 h-4 text-primary" />
-                  <CardTitle className="text-sm font-medium">Exportar Dados</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button onClick={exportPdfReport} className="w-full" variant="outline">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Exportar Relatório PDF
-                </Button>
-                <Button onClick={exportAllData} className="w-full" variant="outline" disabled={exportingData}>
-                  {exportingData ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Database className="w-4 h-4 mr-2" />}
-                  Exportar Todos os Dados (JSON)
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="metric-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <History className="w-4 h-4 text-secondary" />
-                  <CardTitle className="text-sm font-medium">Retenção de Dados</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Manter histórico por</Label>
-                  <Select
-                    value={String(appSettings.keepHistoryDays)}
-                    onValueChange={(value) => saveSettings({ keepHistoryDays: Number(value) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7">7 dias</SelectItem>
-                      <SelectItem value="30">30 dias</SelectItem>
-                      <SelectItem value="90">90 dias</SelectItem>
-                      <SelectItem value="365">1 ano</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="metric-card border-destructive/30">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                  <CardTitle className="text-sm font-medium text-destructive">Zona de Perigo</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button onClick={clearCache} className="w-full" variant="outline" disabled={clearingCache}>
-                  {clearingCache ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                  Limpar Cache do App
-                </Button>
-                <Button onClick={resetSettings} className="w-full" variant="destructive">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Restaurar Configurações Padrão
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Atalhos */}
-        <TabsContent value="shortcuts">
-          <Card className="metric-card max-w-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Keyboard className="w-4 h-4 text-primary" />
-                <CardTitle className="text-sm font-medium">Atalhos de Teclado</CardTitle>
-              </div>
-              <CardDescription className="text-xs">
-                Use atalhos para ações rápidas
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Foto de Perfil
+              </CardTitle>
+              <CardDescription>
+                Adicione uma foto personalizada ao seu perfil
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {shortcuts.map((shortcut, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50"
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  {profileImagePreview ? (
+                    <img
+                      src={profileImagePreview}
+                      alt="Foto de perfil"
+                      className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-muted border-2 border-border flex items-center justify-center">
+                      <User className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <span className="text-sm">{shortcut.action}</span>
-                    <kbd className="px-2 py-1 text-xs bg-muted rounded border border-border">
-                      {shortcut.keys}
-                    </kbd>
-                  </div>
-                ))}
+                    <Camera className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">Foto do Perfil</p>
+                  <p className="text-sm text-muted-foreground">
+                    Clique na câmera para alterar sua foto
+                  </p>
+                  {profileImagePreview && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemoveImage}
+                      className="mt-2 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Remover foto
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações Pessoais</CardTitle>
+              <CardDescription>
+                Atualize suas informações de perfil
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="userName">Nome</Label>
+                <Input
+                  id="userName"
+                  placeholder="Seu nome"
+                  value={settings.userName}
+                  onChange={(e) => saveSettings({ userName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="userEmail">E-mail</Label>
+                <Input
+                  id="userEmail"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={settings.userEmail}
+                  onChange={(e) => saveSettings({ userEmail: e.target.value })}
+                />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Histórico */}
-        <TabsContent value="history">
-          <Card className="metric-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <History className="w-4 h-4 text-primary" />
-                Histórico de Operações
+        {/* Aparência */}
+        <TabsContent value="appearance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="w-5 h-5" />
+                Tema
               </CardTitle>
+              <CardDescription>
+                Escolha o tema visual que prefere
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              {historyLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant={settings.theme === 'light' ? 'default' : 'outline'}
+                  onClick={() => saveSettings({ theme: 'light' })}
+                  className="flex items-center gap-2"
+                >
+                  <Sun className="w-4 h-4" />
+                  Claro
+                </Button>
+                <Button
+                  variant={settings.theme === 'dark' ? 'default' : 'outline'}
+                  onClick={() => saveSettings({ theme: 'dark' })}
+                  className="flex items-center gap-2"
+                >
+                  <Moon className="w-4 h-4" />
+                  Escuro
+                </Button>
+                <Button
+                  variant={settings.theme === 'system' ? 'default' : 'outline'}
+                  onClick={() => saveSettings({ theme: 'system' })}
+                  className="flex items-center gap-2"
+                >
+                  <Monitor className="w-4 h-4" />
+                  Sistema
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Personalização</CardTitle>
+              <CardDescription>
+                Ajuste a aparência da interface
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Tamanho da Fonte</Label>
+                  <span className="text-sm text-muted-foreground">{settings.fontSize}px</span>
                 </div>
-              ) : operations.length === 0 ? (
-                <div className="text-center py-12">
-                  <History className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground text-sm">Nenhuma operação registrada</p>
+                <Slider
+                  value={[settings.fontSize]}
+                  onValueChange={([value]) => saveSettings({ fontSize: value })}
+                  min={12}
+                  max={20}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Modo Compacto</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Reduz o espaçamento entre elementos
+                  </p>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {operations.map((op) => (
-                    <div key={op.id} className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50">
-                      <div className="flex items-center gap-3">
-                        {getOperationIcon(op.operation_type)}
-                        <div>
-                          <p className="text-sm font-medium">{op.operation_name}</p>
-                          {op.details && <p className="text-xs text-muted-foreground">{op.details}</p>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">{formatDate(op.created_at)}</span>
-                        {getStatusIcon(op.status)}
-                      </div>
-                    </div>
-                  ))}
+                <Switch
+                  checked={settings.compactMode}
+                  onCheckedChange={(checked) => saveSettings({ compactMode: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Animações</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Habilitar animações e transições
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.animations}
+                  onCheckedChange={(checked) => saveSettings({ animations: checked })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Accessibility className="w-5 h-5" />
+                Acessibilidade
+              </CardTitle>
+              <CardDescription>
+                Opções para melhorar a acessibilidade
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Alto Contraste</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Aumenta o contraste das cores
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.highContrast}
+                  onCheckedChange={(checked) => saveSettings({ highContrast: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Reduzir Movimento</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Minimiza animações e efeitos visuais
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.reducedMotion}
+                  onCheckedChange={(checked) => saveSettings({ reducedMotion: checked })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notificações */}
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                Notificações do Sistema
+              </CardTitle>
+              <CardDescription>
+                Configure como e quando receber alertas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Notificações Desktop</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Mostrar notificações nativas do sistema
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.desktopNotifications}
+                  onCheckedChange={(checked) => saveSettings({ desktopNotifications: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Som de Notificação</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Reproduzir som ao receber alertas
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.soundEnabled}
+                  onCheckedChange={(checked) => saveSettings({ soundEnabled: checked })}
+                />
+              </div>
+
+              {settings.soundEnabled && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Volume do Som</Label>
+                    <span className="text-sm text-muted-foreground">{settings.soundVolume}%</span>
+                  </div>
+                  <Slider
+                    value={[settings.soundVolume]}
+                    onValueChange={([value]) => saveSettings({ soundVolume: value })}
+                    min={0}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Alertas de Recursos</CardTitle>
+              <CardDescription>
+                Defina limites para alertas automáticos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Alerta de CPU</Label>
+                  <span className="text-sm text-muted-foreground">{settings.cpuAlertThreshold}%</span>
+                </div>
+                <Slider
+                  value={[settings.cpuAlertThreshold]}
+                  onValueChange={([value]) => saveSettings({ cpuAlertThreshold: value })}
+                  min={50}
+                  max={95}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Alerta de Memória</Label>
+                  <span className="text-sm text-muted-foreground">{settings.memoryAlertThreshold}%</span>
+                </div>
+                <Slider
+                  value={[settings.memoryAlertThreshold]}
+                  onValueChange={([value]) => saveSettings({ memoryAlertThreshold: value })}
+                  min={50}
+                  max={95}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Alerta de Disco</Label>
+                  <span className="text-sm text-muted-foreground">{settings.diskAlertThreshold}%</span>
+                </div>
+                <Slider
+                  value={[settings.diskAlertThreshold]}
+                  onValueChange={([value]) => saveSettings({ diskAlertThreshold: value })}
+                  min={70}
+                  max={95}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <DiscordSettings />
+        </TabsContent>
+
+        {/* Sistema */}
+        <TabsContent value="system" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings2 className="w-5 h-5" />
+                Automação
+              </CardTitle>
+              <CardDescription>
+                Configure tarefas automáticas do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Limpeza Automática</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Limpar arquivos temporários automaticamente
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.autoClean}
+                  onCheckedChange={(checked) => saveSettings({ autoClean: checked })}
+                />
+              </div>
+
+              {settings.autoClean && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Intervalo (horas)</Label>
+                    <span className="text-sm text-muted-foreground">{settings.autoCleanInterval}h</span>
+                  </div>
+                  <Slider
+                    value={[settings.autoCleanInterval]}
+                    onValueChange={([value]) => saveSettings({ autoCleanInterval: value })}
+                    min={1}
+                    max={72}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Otimização Automática</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Otimizar sistema automaticamente
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.autoOptimize}
+                  onCheckedChange={(checked) => saveSettings({ autoOptimize: checked })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Inicialização</CardTitle>
+              <CardDescription>
+                Configure como o aplicativo inicia
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Iniciar com Windows</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Iniciar automaticamente com o sistema
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.startWithWindows}
+                  onCheckedChange={(checked) => saveSettings({ startWithWindows: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Minimizar para Bandeja</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Minimizar para a bandeja do sistema ao fechar
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.minimizeToTray}
+                  onCheckedChange={(checked) => saveSettings({ minimizeToTray: checked })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Languages className="w-5 h-5" />
+                Idioma
+              </CardTitle>
+              <CardDescription>
+                Selecione seu idioma preferido
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={settings.language}
+                onValueChange={(value) => saveSettings({ language: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o idioma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
+                  <SelectItem value="en-US">English (US)</SelectItem>
+                  <SelectItem value="es-ES">Español</SelectItem>
+                </SelectContent>
+              </Select>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Update Dialog */}
-      {typeof window !== 'undefined' && window.electronAPI && (
-        <UpdateDialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog} />
-      )}
+      {/* <UpdateDialog /> */}
     </div>
   );
 };

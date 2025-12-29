@@ -1,11 +1,11 @@
-// Script de verificação de setup do OptiClean Pro
+// Script de verificação de setup do Byte Latency
 // Execute com: node verify-setup.js
 
 const fs = require('fs');
 const path = require('path');
 
 console.log('\n═══════════════════════════════════════════════════════════════');
-console.log('  OPTICLEAN PRO - VERIFICAÇÃO DE SETUP');
+console.log('  BYTE LATENCY - VERIFICAÇÃO DE SETUP');
 console.log('═══════════════════════════════════════════════════════════════\n');
 
 let totalChecks = 0;
@@ -53,8 +53,8 @@ if (fs.existsSync('package.json')) {
     check('Seção "build" existe', packageJson.build !== undefined);
     
     if (packageJson.build) {
-      check('appId configurado', packageJson.build.appId === 'com.opticlean.pro');
-      check('productName configurado', packageJson.build.productName === 'OptiClean Pro');
+      check('appId configurado', packageJson.build.appId === 'com.bytelatency.app');
+      check('productName configurado', packageJson.build.productName === 'Byte Latency');
     }
   } catch (error) {
     errors.push('Erro ao ler package.json: ' + error.message);

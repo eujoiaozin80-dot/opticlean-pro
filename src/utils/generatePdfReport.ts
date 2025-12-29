@@ -37,6 +37,19 @@ export interface ReportData {
   email?: string;
 }
 
+// Função para adicionar logo da Latency no PDF
+const addLogoToPdf = (doc: jsPDF, x: number, y: number, size: number = 30) => {
+  // Adicionar círculo com cor #2026
+  doc.setFillColor(32, 38, 38); // #2026 em RGB
+  doc.circle(x + size/2, y + size/2, size/2, 'F');
+  
+  // Adicionar texto "BL" (Byte Latency)
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(size * 0.4);
+  doc.setFont('helvetica', 'bold');
+  doc.text('BL', x + size/2, y + size/2 + size * 0.15, { align: 'center' });
+};
+
 export const generatePdfReport = (data: ReportData): void => {
   try {
     const doc = new jsPDF();
@@ -59,14 +72,20 @@ export const generatePdfReport = (data: ReportData): void => {
     doc.setFillColor(13, 17, 23);
     doc.rect(0, 0, pageWidth, 40, 'F');
     
+    // Adicionar logo da Latency
+    addLogoToPdf(doc, 15, 8, 24);
+    
+    // Usar nome do usuário ou "Byte Latency" como fallback
+    const displayName = data.userName || 'Byte Latency';
+    
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text('OptiClean Pro', 20, 25);
+    doc.text(displayName, 50, 25);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Relatório de Performance do Sistema', 20, 33);
+    doc.text('Relatório de Performance do Sistema', 50, 33);
     
     doc.setFontSize(9);
     doc.text(`Gerado em: ${now.toLocaleString('pt-BR')}`, pageWidth - 20, 25, { align: 'right' });
@@ -232,7 +251,7 @@ export const generatePdfReport = (data: ReportData): void => {
       doc.setFontSize(8);
       doc.setTextColor(128, 128, 128);
       doc.text(
-        `OptiClean Pro - Relatório de Performance | Página ${i} de ${pageCount}`,
+        `Byte Latency - Relatório de Performance | Página ${i} de ${pageCount}`,
         pageWidth / 2,
         doc.internal.pageSize.getHeight() - 10,
         { align: 'center' }
@@ -240,7 +259,7 @@ export const generatePdfReport = (data: ReportData): void => {
     }
     
     // Save
-    const filename = `opticlean-report-${now.toISOString().split('T')[0]}.pdf`;
+    const filename = `byte-latency-report-${now.toISOString().split('T')[0]}.pdf`;
     doc.save(filename);
   } catch (error) {
     console.error('Erro ao gerar PDF:', error);

@@ -17,8 +17,8 @@ import { useProcessHistory } from '@/hooks/useProcessHistory';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { exportProcessesToCSV, exportProcessesToJSON } from '@/utils/export';
 import { ProcessSkeletonList } from '@/components/ProcessSkeleton';
-import { ProcessPriorityManager } from '@/components/ProcessPriorityManager';
-import { ProcessSnapshots } from '@/components/ProcessSnapshots';
+// import { ProcessPriorityManager } from '@/components/ProcessPriorityManager';
+// import { ProcessSnapshots } from '@/components/ProcessSnapshots';
 import { PROCESS_CONSTANTS } from '@/constants/processes';
 import type { ProcessFilter } from '@/types/process';
 import {
@@ -637,11 +637,11 @@ const Processes = ({ className, ...props }: ProcessesProps) => {
         </CardContent>
       </Card>
 
-      {/* Priority Manager and Snapshots */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Priority Manager and Snapshots - Temporarily removed */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ProcessPriorityManager />
         <ProcessSnapshots processes={filteredProcesses} />
-      </div>
+      </div> */}
 
       {/* Dialog de Confirmação */}
       <AlertDialog open={!!processToKill} onOpenChange={(open) => !open && setProcessToKill(null)}>

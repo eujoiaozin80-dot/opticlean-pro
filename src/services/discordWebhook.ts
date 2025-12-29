@@ -85,7 +85,7 @@ export const sendDiscordMessage = async (message: DiscordMessage): Promise<boole
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        username: message.username || 'OptiClean Pro',
+        username: message.username || 'Byte Latency',
         avatar_url: message.avatar_url || 'https://i.imgur.com/AfFp7pu.png',
         ...message,
       }),
@@ -118,7 +118,7 @@ export const sendSystemAlert = async (
         color: COLORS[type],
         fields,
         footer: {
-          text: 'OptiClean Pro - Sistema de Monitoramento',
+          text: 'Byte Latency - Sistema de Monitoramento',
         },
         timestamp: new Date().toISOString(),
       },
@@ -268,7 +268,7 @@ export const sendLoginAlert = async (
 export const sendUpdateAvailableAlert = async (version: string): Promise<boolean> => {
   return sendSystemAlert(
     'Atualização Disponível',
-    `🆕 Uma nova versão do OptiClean Pro está disponível!`,
+    `🆕 Uma nova versão do Byte Latency está disponível!`,
     'info',
     [
       { name: 'Nova Versão', value: version, inline: true },
@@ -285,7 +285,7 @@ export const testWebhookConnection = async (): Promise<boolean> => {
         description: 'Conexão com Discord configurada com sucesso!',
         color: COLORS.success,
         footer: {
-          text: 'OptiClean Pro',
+          text: 'Byte Latency',
         },
         timestamp: new Date().toISOString(),
       },

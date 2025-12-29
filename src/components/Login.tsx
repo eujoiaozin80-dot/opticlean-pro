@@ -20,7 +20,7 @@ import { useLoginAttempts } from "@/hooks/useLoginAttempts";
 import { usePasswordStrength } from "@/hooks/usePasswordStrength";
 import { useLoginHistory } from "@/hooks/useLoginHistory";
 import { validateActivationCode, markActivationCodeAsUsed } from "@/utils/activationCode";
-import logoOpticlean from "@/assets/logo-opticlean.png";
+import logoLatency from "/Latency.png";
 
 /* SCHEMAS */
 const emailSchema = z.string().trim().email({ message: "E-mail inválido" })
@@ -293,14 +293,12 @@ export default function Login({ onLogin }: LoginProps) {
   /* AI PLACEHOLDERS */
   const emailAI = useAIMockTyping([
     "seu@email.com",
-    "usuario@empresa.com",
-    "login@opticlean.com",
   ]);
 
   const passAI = useAIMockTyping([
-    "••••••••",
+    
     "senha da conta",
-    "senha super segura",
+    
   ]);
 
   /* HANDLE PASSWORD RESET */
@@ -409,8 +407,8 @@ export default function Login({ onLogin }: LoginProps) {
         // Salvar "Lembrar-me" se marcado
         if (rememberMe) {
           try {
-            localStorage.setItem('opticlean_remember_me', 'true');
-            localStorage.setItem('opticlean_user_email', email);
+            const savedEmail = localStorage.getItem('byte-latency_user_email') || '';
+            const rememberMeSaved = localStorage.getItem('byte-latency_remember_me') === 'true';
           } catch {
             // Ignorar erros de localStorage
           }
@@ -473,13 +471,18 @@ export default function Login({ onLogin }: LoginProps) {
 
           toast({
             title: "Conta criada!",
-            description: "Bem-vindo ao OptiClean Pro",
+            description: "Bem-vindo ao Byte Latency",
           });
 
           // Log first login
           logLogin(authData.user.id, email, 'success');
 
           onLogin(authData.user.id, profile?.role || 'user', profile?.full_name || undefined);
+          
+          // Limpar campos após login bem-sucedido (exceto nome)
+          setEmail("");
+          setPassword("");
+          setActivationCode("");
         } else {
           // Founder não precisa de código
           const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -514,6 +517,11 @@ export default function Login({ onLogin }: LoginProps) {
           logLogin(authData.user.id, email, 'success');
 
           onLogin(authData.user.id, profile?.role || 'user', profile?.full_name || undefined);
+          
+          // Limpar campos após login bem-sucedido (exceto nome)
+          setEmail("");
+          setPassword("");
+          setActivationCode("");
         }
       }
     } catch (err: unknown) {
@@ -568,13 +576,13 @@ export default function Login({ onLogin }: LoginProps) {
             >
               <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full scale-150" />
               <img
-                src={logoOpticlean}
+                src={logoLatency}
                 className="w-20 h-20 relative z-10"
-                alt="OptiClean Pro"
+                alt="Byte Latency"
                 draggable={false}
               />
             </motion.div>
-            <h1 className="text-2xl font-bold text-gradient mb-1">OptiClean Pro</h1>
+            <h1 className="text-2xl font-bold text-gradient mb-1">Byte Latency</h1>
             <p className="text-sm text-muted-foreground">Sistema De Otimização Premium</p>
           </div>
 
@@ -878,7 +886,7 @@ export default function Login({ onLogin }: LoginProps) {
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-6 pt-6 border-t">
-            v1.2.0 • © 2025 OptiClean Pro
+            v1.0 • © 2026 Quirino
           </p>
         </Card>
       </motion.div>

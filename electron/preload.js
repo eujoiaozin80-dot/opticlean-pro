@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 // ============================================
-// OptiClean Pro - Preload Script
+// Byte Latency - Preload Script
 // APIs seguras expostas ao renderer
 // ============================================
 
@@ -111,4 +111,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 });
 
-console.log('[OptiClean Pro] APIs do Electron carregadas');
+console.log('[Byte Latency] APIs do Electron carregadas');

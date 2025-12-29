@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import logoOpticlean from "@/assets/logo-opticlean.png";
+import logoLatency from "/Latency.png";
 
 interface WelcomeScreenProps {
   userName: string;
@@ -101,7 +101,7 @@ export default function WelcomeScreen({ userName, onComplete }: WelcomeScreenPro
         >
           <div className="absolute inset-0 bg-primary/25 blur-3xl rounded-full scale-150 animate-pulse" />
           <img
-            src={logoOpticlean}
+            src={logoLatency}
             className="w-28 h-28 drop-shadow-[0_0_25px_rgba(0,0,0,0.45)]"
             alt=""
             draggable={false}
@@ -186,7 +186,7 @@ export default function WelcomeScreen({ userName, onComplete }: WelcomeScreenPro
         transition={{ duration: 1 }}
         className="absolute bottom-8 text-xs text-muted-foreground/60"
       >
-        OptiClean Pro v1
+        Byte Latency v1
       </motion.div>
     </div>
   );

@@ -1,0 +1,1 @@
+{" compilerOptions\: {\module\: \deno\, \target\: \deno\, \lib\: [\deno.window\], \strict\: false, \noImplicitAny\: false, \skipLibCheck\: true}, \include\: [\**/*.ts\], \exclude\: [\node_modules\]}

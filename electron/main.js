@@ -1,5 +1,5 @@
 // ================================
-// OptiClean Pro - Main Process Fix
+// Byte Latency - Main Process Fix
 // Código completo e corrigido
 // ================================
 
@@ -55,7 +55,7 @@ autoUpdater.on('update-available', (info) => {
     new Notification({
       title: 'Atualização Disponível',
       body: `Versão ${info.version} está disponível!`,
-      icon: path.join(__dirname, '../public/favicon.ico'),
+      icon: path.join(__dirname, '../public/Latency.png'),
     }).show();
   }
 });
@@ -101,7 +101,7 @@ autoUpdater.on('update-downloaded', (info) => {
     new Notification({
       title: 'Atualização Baixada',
       body: 'A atualização foi baixada. O aplicativo será reiniciado.',
-      icon: path.join(__dirname, '../public/favicon.ico'),
+      icon: path.join(__dirname, '../public/Latency.png'),
     }).show();
   }
 });
@@ -186,7 +186,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    icon: path.join(__dirname, '../public/favicon.ico'),
+    icon: path.join(__dirname, '../public/Latency.png'),
     backgroundColor: '#0a0a0f',
   });
 
@@ -452,9 +452,9 @@ ipcMain.handle('show-notification', async (_, { title, body, type }) => {
     
     if (Notification.isSupported()) {
       const notification = new Notification({
-        title: title || 'OptiClean Pro',
+        title: title || 'Byte Latency',
         body: body || '',
-        icon: path.join(__dirname, '../public/favicon.ico'),
+        icon: path.join(__dirname, '../public/Latency.png'),
         silent: false,
       });
       
@@ -1184,10 +1184,10 @@ ipcMain.handle('optimize-cpu', async () => {
     writeLog(`Erro na otimização de CPU: ${error.message}`);
   }
   
-  // Elevar prioridade do OptiClean
+  // Elevar prioridade do Byte Latency
   try {
     await execPromise('wmic process where name="electron.exe" CALL setpriority "high priority"');
-    actions.push('Prioridade do OptiClean elevada');
+    actions.push('Prioridade do Byte Latency elevada');
   } catch {}
   
   return {

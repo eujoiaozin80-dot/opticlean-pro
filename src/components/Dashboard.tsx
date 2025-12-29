@@ -189,8 +189,8 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
               <Sparkles className="w-8 h-8 text-primary animate-pulse-glow" />
             </div>
             <div>
-              <h2 className="font-bold text-lg">OptiClean Pro</h2>
-              <p className="text-xs text-muted-foreground">v1.2.0</p>
+              <h2 className="font-bold text-lg">Byte Latency</h2>
+              <p className="text-xs text-muted-foreground">v1.0.0</p>
             </div>
           </div>
 
@@ -247,7 +247,7 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
               <Sparkles className="w-8 h-8 text-primary animate-pulse-glow" />
             </div>
             <div>
-              <h2 className="font-bold text-lg">OptiClean Pro</h2>
+              <h2 className="font-bold text-lg">Byte Latency</h2>
               <p className="text-xs text-primary">Fundador</p>
             </div>
           </div>
@@ -367,7 +367,7 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
               <Sparkles className="w-8 h-8 text-primary animate-pulse-glow" />
             </div>
             <div>
-              <h2 className="font-bold text-lg">OptiClean Pro</h2>
+              <h2 className="font-bold text-lg">Byte Latency</h2>
               <p className="text-xs text-primary">Fundador</p>
             </div>
           </div>
@@ -505,8 +505,8 @@ const Dashboard = ({ onLogout, userId, userRole }: DashboardProps) => {
             <Sparkles className="w-8 h-8 text-primary animate-pulse-glow" />
           </div>
           <div>
-            <h2 className="font-bold text-lg">OptiClean Pro</h2>
-            <p className="text-xs text-muted-foreground">v1.2.0</p>
+            <h2 className="font-bold text-lg">Byte Latency</h2>
+            <p className="text-xs text-muted-foreground">v1.0.0</p>
           </div>
         </div>
 

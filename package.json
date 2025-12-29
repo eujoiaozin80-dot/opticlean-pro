@@ -1,7 +1,7 @@
 {
-  "name": "opticlean",
+  "name": "byte-latency",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.0.0",
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
@@ -16,17 +16,16 @@
     "lint": "eslint ."
   },
   "build": {
-    "appId": "com.opticlean.pro",
-    "productName": "OptiClean Pro",
-    "icon": "src/assets/logo-opticlean.png",
+    "appId": "com.bytelatency.app",
+    "productName": "Byte Latency",
+    "icon": "src/assets/Latency.png",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "public/favicon.ico",
-      "public/logo-opticlean.png",
+      "public/Latency.png",
       "public/robots.txt"
     ],
     "win": {
@@ -40,7 +39,7 @@
       {
         "provider": "github",
         "owner": "eujoiaozin80-dot",
-        "repo": "opticlean-pro",
+        "repo": "byte-latency",
         "releaseType": "release"
       }
     ]

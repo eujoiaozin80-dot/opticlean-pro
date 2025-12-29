@@ -1,5 +1,5 @@
 // ============================================
-// OptiClean Pro - TypeScript Declarations
+// Byte Latency - TypeScript Declarations
 // ============================================
 
 interface SystemStatsData {

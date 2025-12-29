@@ -12,13 +12,14 @@ import {
   LogOut,
   Users,
   Activity,
-  Download
+  Download,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppUpdates } from '@/hooks/useAppUpdates';
 import { UpdateDialog } from '@/components/UpdateDialog';
-import logoOpticlean from '@/assets/logo-opticlean.png';
+import logoLatency from "/Latency.png";
 
 interface SidebarProps {
   userRole: string;
@@ -59,14 +60,14 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       <div className={`p-4 border-b border-border/50 ${collapsed ? 'px-3' : ''}`}>
         <div className="flex items-center gap-3">
           <img 
-            src={logoOpticlean} 
-            alt="OptiClean Pro" 
+            src={logoLatency} 
+            alt="Byte Latency" 
             className={`${collapsed ? 'w-10 h-10' : 'w-9 h-9'} transition-all`}
           />
           {!collapsed && (
             <div className="animate-fade-in">
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-foreground">OptiClean Pro</h2>
+                <h2 className="font-semibold text-foreground">Byte Latency</h2>
                 {(available || downloaded) && (
                   <Badge variant="destructive" className="animate-pulse">
                     <Download className="w-3 h-3 mr-1" />
@@ -75,7 +76,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {isFounder ? 'Administrador' : currentVersion || 'v1.2.0'}
+                {isFounder ? 'Administrador' : currentVersion || 'v1.0.0'}
               </p>
             </div>
           )}

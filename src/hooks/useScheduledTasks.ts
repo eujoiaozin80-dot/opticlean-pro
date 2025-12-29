@@ -13,7 +13,7 @@ export interface ScheduledTask {
   nextRun?: string;
 }
 
-const STORAGE_KEY = 'opticlean-scheduled-tasks';
+const STORAGE_KEY = 'byte-latency-scheduled-tasks';
 
 export const useScheduledTasks = () => {
   const [tasks, setTasks] = useState<ScheduledTask[]>(() => {

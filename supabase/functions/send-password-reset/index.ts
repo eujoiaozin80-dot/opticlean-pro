@@ -1,3 +1,4 @@
+// @ts-nocheck - Supabase functions use Deno runtime
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -25,7 +26,7 @@ const generateEmailHTML = (resetLink: string, userName: string | null) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redefinir Senha - OptiClean Pro</title>
+  <title>Redefinir Senha - Byte Latency</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0D1117;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -48,7 +49,7 @@ const generateEmailHTML = (resetLink: string, userName: string | null) => {
                       </tr>
                     </table>
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                      OptiClean Pro
+                      Byte Latency
                     </h1>
                     <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">
                       Sistema de Otimização Profissional
@@ -69,7 +70,7 @@ const generateEmailHTML = (resetLink: string, userName: string | null) => {
                       Olá, ${displayName}! 👋
                     </h2>
                     <p style="margin: 0 0 24px 0; color: #8B949E; font-size: 16px; line-height: 1.6;">
-                      Recebemos uma solicitação para redefinir a senha da sua conta OptiClean Pro.
+                      Recebemos uma solicitação para redefinir a senha da sua conta Byte Latency.
                     </p>
                     
                     <!-- CTA Button -->
@@ -157,8 +158,8 @@ const generateEmailHTML = (resetLink: string, userName: string | null) => {
                       Precisa de ajuda? Entre em contato conosco
                     </p>
                     <p style="margin: 0 0 20px 0;">
-                      <a href="mailto:suporte@opticleanpro.com" style="color: #0EA5E9; text-decoration: none; font-size: 14px;">
-                        📧 suporte@opticleanpro.com
+                      <a href="mailto:suporte@bytelatency.com" style="color: #0EA5E9; text-decoration: none; font-size: 14px;">
+                        📧 suporte@bytelatency.com
                       </a>
                     </p>
                     
@@ -171,7 +172,7 @@ const generateEmailHTML = (resetLink: string, userName: string | null) => {
                     
                     <!-- Company Info -->
                     <p style="margin: 0; color: #6E7681; font-size: 12px; line-height: 1.6;">
-                      © ${year} OptiClean Pro. Todos os direitos reservados.
+                      © ${year} Byte Latency. Todos os direitos reservados.
                     </p>
                     <p style="margin: 8px 0 0 0; color: #6E7681; font-size: 11px;">
                       Sistema profissional de otimização e monitoramento para Windows
@@ -256,9 +257,9 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "OptiClean Pro <onboarding@resend.dev>",
+        from: "Byte Latency <onboarding@resend.dev>",
         to: [email],
-        subject: "🔐 Redefinição de Senha - OptiClean Pro",
+        subject: "🔐 Redefinição de Senha - Byte Latency",
         html: emailHTML,
       }),
     });

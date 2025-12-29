@@ -73,7 +73,7 @@ export const UpdateDialog = ({ open, onOpenChange }: UpdateDialogProps) => {
                 ? 'A atualização foi baixada e será instalada ao reiniciar.'
                 : updateInfo
                 ? `Versão ${updateInfo.version} está disponível para download.`
-                : 'Verifique se há atualizações disponíveis para o OptiClean Pro.'}
+                : 'Verifique se há atualizações disponíveis para o Byte Latency.'}
             </DialogDescription>
           </DialogHeader>
 

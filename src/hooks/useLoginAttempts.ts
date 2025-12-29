@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { AUTH_CONFIG } from '@/config/auth';
 
-const STORAGE_KEY = 'opticlean_login_attempts';
+const STORAGE_KEY = 'byte-latency_login_attempts';
 
 export const useLoginAttempts = () => {
   const [attempts, setAttempts] = useState<number[]>(() => {

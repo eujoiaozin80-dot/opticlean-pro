@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Lock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import logoOpticlean from '@/assets/logo-opticlean.png';
+import logoLatency from "/Latency.png";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -222,7 +222,7 @@ export default function ResetPassword() {
       >
         <Card className="p-8">
           <div className="flex flex-col items-center mb-6">
-            <img src={logoOpticlean} alt="OptiClean Pro" className="w-16 h-16 mb-4" />
+            <img src={logoLatency} alt="Byte Latency" className="w-16 h-16 mb-4" />
             <h1 className="text-2xl font-bold">Redefinir Senha</h1>
             <p className="text-muted-foreground text-sm text-center mt-2">
               Digite sua nova senha abaixo

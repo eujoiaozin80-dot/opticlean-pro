@@ -1,3 +1,4 @@
+// @ts-nocheck - Supabase functions use Deno runtime
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -28,7 +29,7 @@ const generateEmailHTML = (message: string, recipientName: string | null, sender
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mensagem - OptiClean Pro</title>
+  <title>Mensagem - Byte Latency</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0D1117;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -50,7 +51,7 @@ const generateEmailHTML = (message: string, recipientName: string | null, sender
                       </tr>
                     </table>
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                      OptiClean Pro
+                      Byte Latency
                     </h1>
                     <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">
                       Mensagem da Administração
@@ -71,7 +72,7 @@ const generateEmailHTML = (message: string, recipientName: string | null, sender
                       Olá, ${displayName}! 👋
                     </h2>
                     <p style="margin: 0 0 24px 0; color: #8B949E; font-size: 14px;">
-                      Você recebeu uma mensagem do administrador do OptiClean Pro.
+                      Você recebeu uma mensagem do administrador do Byte Latency.
                     </p>
                     
                     <!-- Message Box -->
@@ -96,7 +97,7 @@ const generateEmailHTML = (message: string, recipientName: string | null, sender
                             ${senderName}
                           </p>
                           <p style="margin: 2px 0 0 0; color: #6E7681; font-size: 12px;">
-                            Administração OptiClean Pro
+                            Administração Byte Latency
                           </p>
                         </td>
                       </tr>
@@ -117,8 +118,8 @@ const generateEmailHTML = (message: string, recipientName: string | null, sender
                       Dúvidas? Entre em contato conosco
                     </p>
                     <p style="margin: 0 0 20px 0;">
-                      <a href="mailto:suporte@opticleanpro.com" style="color: #0EA5E9; text-decoration: none; font-size: 14px;">
-                        📧 suporte@opticleanpro.com
+                      <a href="mailto:suporte@bytelatency.com" style="color: #0EA5E9; text-decoration: none; font-size: 14px;">
+                        📧 suporte@bytelatency.com
                       </a>
                     </p>
                     
@@ -129,7 +130,7 @@ const generateEmailHTML = (message: string, recipientName: string | null, sender
                     </table>
                     
                     <p style="margin: 0; color: #6E7681; font-size: 12px; line-height: 1.6;">
-                      © ${year} OptiClean Pro. Todos os direitos reservados.
+                      © ${year} Byte Latency. Todos os direitos reservados.
                     </p>
                     <p style="margin: 8px 0 0 0; color: #6E7681; font-size: 11px;">
                       Sistema profissional de otimização e monitoramento para Windows
@@ -172,7 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "OptiClean Pro <onboarding@resend.dev>",
+        from: "Byte Latency <onboarding@resend.dev>",
         to: [to],
         subject: `📬 ${subject}`,
         html: emailHTML,

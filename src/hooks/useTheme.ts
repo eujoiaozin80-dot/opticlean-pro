@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'system';
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('opticlean-theme') as Theme;
-      return saved || 'dark';
+      const saved = localStorage.getItem('appSettings');
+      if (saved) {
+        const settings = JSON.parse(saved);
+        return settings.theme || 'dark';
+      }
+      return 'dark';
     }
     return 'dark';
   });
@@ -14,43 +18,52 @@ export const useTheme = () => {
   useEffect(() => {
     const root = document.documentElement;
     
-    if (theme === 'light') {
-      root.classList.add('light');
-      // Tema claro com melhor contraste
-      root.style.setProperty('--background', '0 0% 100%');
-      root.style.setProperty('--background-alt', '0 0% 98%');
-      root.style.setProperty('--foreground', '222 47% 11%');
-      root.style.setProperty('--card', '0 0% 100%');
-      root.style.setProperty('--card-foreground', '222 47% 11%');
-      root.style.setProperty('--popover', '0 0% 100%');
-      root.style.setProperty('--popover-foreground', '222 47% 11%');
-      root.style.setProperty('--muted', '210 40% 96%');
-      root.style.setProperty('--muted-foreground', '215 16% 35%');
-      root.style.setProperty('--border', '214 32% 85%');
-      root.style.setProperty('--input', '214 32% 91%');
-      root.style.setProperty('--ring', '210 100% 56%');
+    // Remover todas as classes de tema primeiro
+    root.classList.remove('dark', 'light');
+    
+    let effectiveTheme: 'dark' | 'light';
+    
+    if (theme === 'system') {
+      // Verificar preferência do sistema
+      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     } else {
-      root.classList.remove('light');
-      // Tema escuro (mantido)
-      root.style.setProperty('--background', '222 47% 6%');
-      root.style.setProperty('--background-alt', '220 45% 8%');
-      root.style.setProperty('--foreground', '210 40% 98%');
-      root.style.setProperty('--card', '220 45% 9%');
-      root.style.setProperty('--card-foreground', '210 40% 98%');
-      root.style.setProperty('--popover', '220 45% 9%');
-      root.style.setProperty('--popover-foreground', '210 40% 98%');
-      root.style.setProperty('--muted', '220 30% 16%');
-      root.style.setProperty('--muted-foreground', '215 20% 65%');
-      root.style.setProperty('--border', '220 30% 18%');
-      root.style.setProperty('--input', '220 40% 12%');
-      root.style.setProperty('--ring', '210 100% 56%');
+      effectiveTheme = theme;
     }
     
-    localStorage.setItem('opticlean-theme', theme);
+    // Adicionar a classe do tema efetivo
+    root.classList.add(effectiveTheme);
+    
+    // Salvar no localStorage através das configurações do app
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('appSettings');
+      const settings = saved ? JSON.parse(saved) : {};
+      settings.theme = theme;
+      localStorage.setItem('appSettings', JSON.stringify(settings));
+    }
+  }, [theme]);
+
+  // Ouvir mudanças na preferência do sistema quando o tema for 'system'
+  useEffect(() => {
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      const handleChange = () => {
+        const root = document.documentElement;
+        root.classList.remove('dark', 'light');
+        root.classList.add(mediaQuery.matches ? 'dark' : 'light');
+      };
+      
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme(prev => {
+      if (prev === 'dark') return 'light';
+      if (prev === 'light') return 'system';
+      return 'dark';
+    });
   };
 
   return { theme, setTheme, toggleTheme };
