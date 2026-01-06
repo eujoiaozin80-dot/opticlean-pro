@@ -198,7 +198,7 @@ const Users = ({ className, ...props }: UsersProps) => {
 
     // Ordenação
     filtered.sort((a, b) => {
-      let aVal: string | undefined, bVal: string | undefined;
+      let aVal: string | number, bVal: string | number;
 
       switch (sortBy) {
         case 'name':
@@ -221,6 +221,9 @@ const Users = ({ className, ...props }: UsersProps) => {
           aVal = a.operations_count || 0;
           bVal = b.operations_count || 0;
           break;
+        default:
+          aVal = '';
+          bVal = '';
       }
 
       if (sortOrder === 'asc') {

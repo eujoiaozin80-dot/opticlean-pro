@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ProgressDialog } from '@/components/ProgressDialog';
-import { QuickOptimizations } from '@/components/QuickOptimizations';
+import QuickOptimizations from '@/components/QuickOptimizations';
 import { 
   Zap, 
   Settings, 
