@@ -43,7 +43,7 @@ const QuickOptimizations = () => {
     setExecutingFile(fileId);
     
     try {
-      const result = await executeOptimization(fileId, category);
+      const result = await executeOptimization(fileId);
       
       if (result.success) {
         toast({
