@@ -218,16 +218,26 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
     const user = userData?.users?.find(u => u.email === email);
     
-    if (user) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
-      
-      userName = profile?.full_name || null;
-      console.log("Found user profile, name:", userName);
+    // Check if user exists - return success anyway to prevent email enumeration
+    if (!user) {
+      console.log("User not found for email:", email);
+      // Return success to prevent email enumeration attacks
+      // But don't actually send an email
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
+    
+    // Get user profile name
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    
+    userName = profile?.full_name || null;
+    console.log("Found user profile, name:", userName);
 
     // Generate password reset link
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -240,7 +250,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (linkError) {
       console.error("Error generating reset link:", linkError);
-      throw new Error(linkError.message);
+      // Return success anyway to prevent email enumeration
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     const resetLink = linkData.properties.action_link;
