@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -7,19 +7,17 @@ import {
   Rocket,
   Settings,
   Shield,
-  ChevronLeft,
-  ChevronRight,
   LogOut,
   Users,
   Activity,
   Download,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAppUpdates } from '@/hooks/useAppUpdates';
 import { UpdateDialog } from '@/components/UpdateDialog';
-import logoLatency from "/Latency.png";
 
 interface SidebarProps {
   userRole: string;
@@ -27,7 +25,6 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
-  const [collapsed, setCollapsed] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const location = useLocation();
   const isFounder = userRole === 'founder';
@@ -37,6 +34,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
     { title: 'Monitoramento', url: '/monitoring', icon: Activity },
     { title: 'Processos', url: '/processes', icon: Cpu },
+    { title: 'Otimização', url: '/optimization', icon: Zap },
     { title: 'Inicialização', url: '/startup', icon: Rocket },
     { title: 'Configurações', url: '/settings', icon: Settings },
   ];
@@ -51,106 +49,60 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <aside
-      className={`${
-        collapsed ? 'w-[72px]' : 'w-64'
-      } glass-strong transition-all duration-300 flex flex-col relative min-h-screen`}
-    >
-      {/* Header */}
-      <div className={`p-4 border-b border-border/50 ${collapsed ? 'px-3' : ''}`}>
-        <div className="flex items-center gap-3">
-          <img 
-            src={logoLatency} 
-            alt="Byte Latency" 
-            className={`${collapsed ? 'w-10 h-10' : 'w-9 h-9'} transition-all`}
-          />
-          {!collapsed && (
-            <div className="animate-fade-in">
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-foreground">Byte Latency</h2>
-                {(available || downloaded) && (
-                  <Badge variant="destructive" className="animate-pulse">
-                    <Download className="w-3 h-3 mr-1" />
-                    Atualizar
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {isFounder ? 'Administrador' : currentVersion || 'v1.0.0'}
-              </p>
-            </div>
-          )}
-        </div>
+    <aside className="w-[72px] bg-card/80 backdrop-blur-xl border-r border-border/50 flex flex-col min-h-screen">
+      {/* Close Button */}
+      <div className="p-4 flex justify-center">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="text-muted-foreground hover:text-foreground"
+          onClick={onLogout}
+        >
+          <X className="w-5 h-5" />
+        </Button>
       </div>
 
-      {/* Toggle Button */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-[72px] bg-card border border-border text-foreground rounded-full p-1.5 shadow-md hover:bg-muted transition-colors z-10"
-      >
-        {collapsed ? (
-          <ChevronRight className="w-3 h-3" />
-        ) : (
-          <ChevronLeft className="w-3 h-3" />
-        )}
-      </button>
-
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
-        {/* Main Section */}
-        {!collapsed && (
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2">
-            Menu
-          </p>
-        )}
-        {mainItems.map((item, index) => (
+      <nav className="flex-1 py-4 space-y-2">
+        {mainItems.map((item) => (
           <NavLink
             key={item.url}
             to={item.url}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+            className={`flex items-center justify-center py-3 mx-2 rounded-xl transition-all duration-200 group relative ${
               isActive(item.url)
-                ? 'bg-primary/10 text-primary'
+                ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-            } ${collapsed ? 'justify-center' : ''}`}
-            activeClassName="bg-primary/10 text-primary"
-            style={{ animationDelay: `${index * 0.05}s` }}
+            }`}
+            activeClassName="bg-primary text-primary-foreground"
           >
-            <item.icon className={`${collapsed ? 'w-5 h-5' : 'w-[18px] h-[18px]'} flex-shrink-0 transition-all`} />
-            {!collapsed && (
-              <span className="font-medium text-sm">{item.title}</span>
-            )}
-            {isActive(item.url) && !collapsed && (
-              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-            )}
+            <item.icon className="w-5 h-5" />
+            {/* Tooltip */}
+            <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+              {item.title}
+            </div>
           </NavLink>
         ))}
 
         {/* Admin Section */}
         {isFounder && adminItems.length > 0 && (
           <>
-            {!collapsed && (
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2 mt-4">
-                Administração
-              </p>
-            )}
+            <div className="mx-4 my-3 border-t border-border/50" />
             {adminItems.map((item) => (
               <NavLink
                 key={item.url}
                 to={item.url}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                className={`flex items-center justify-center py-3 mx-2 rounded-xl transition-all duration-200 group relative ${
                   isActive(item.url)
-                    ? 'bg-secondary/10 text-secondary'
+                    ? 'bg-secondary text-secondary-foreground'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                } ${collapsed ? 'justify-center' : ''}`}
-                activeClassName="bg-secondary/10 text-secondary"
+                }`}
+                activeClassName="bg-secondary text-secondary-foreground"
               >
-                <item.icon className={`${collapsed ? 'w-5 h-5' : 'w-[18px] h-[18px]'} flex-shrink-0`} />
-                {!collapsed && (
-                  <span className="font-medium text-sm">{item.title}</span>
-                )}
-                {isActive(item.url) && !collapsed && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-secondary" />
-                )}
+                <item.icon className="w-5 h-5" />
+                {/* Tooltip */}
+                <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                  {item.title}
+                </div>
               </NavLink>
             ))}
           </>
@@ -158,32 +110,28 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       </nav>
 
       {/* Update Indicator */}
-      {(available || downloaded) && !collapsed && (
-        <div className={`p-3 border-t border-border/50 ${collapsed ? 'px-3' : ''}`}>
+      {(available || downloaded) && (
+        <div className="p-2">
           <Button
-            variant="outline"
+            variant="ghost"
+            size="icon"
             onClick={() => setShowUpdateDialog(true)}
-            className={`w-full justify-start text-primary border-primary/50 hover:bg-primary/10 ${
-              collapsed ? 'px-0 justify-center' : ''
-            }`}
+            className="w-full aspect-square text-primary hover:bg-primary/10 animate-pulse"
           >
-            <Download className={`w-[18px] h-[18px] ${collapsed ? '' : 'mr-2'}`} />
-            {!collapsed && <span className="font-medium text-sm">Atualização Disponível</span>}
+            <Download className="w-5 h-5" />
           </Button>
         </div>
       )}
 
       {/* Logout Button */}
-      <div className={`p-3 border-t border-border/50 ${collapsed ? 'px-3' : ''}`}>
+      <div className="p-2 border-t border-border/50">
         <Button
           onClick={onLogout}
           variant="ghost"
-          className={`w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 ${
-            collapsed ? 'px-0 justify-center' : ''
-          }`}
+          size="icon"
+          className="w-full aspect-square text-muted-foreground hover:text-destructive hover:bg-destructive/10"
         >
-          <LogOut className={`w-[18px] h-[18px] ${collapsed ? '' : 'mr-2'}`} />
-          {!collapsed && <span className="font-medium text-sm">Sair</span>}
+          <LogOut className="w-5 h-5" />
         </Button>
       </div>
 
