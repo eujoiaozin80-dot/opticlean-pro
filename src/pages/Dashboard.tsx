@@ -7,13 +7,13 @@ import {
   Users,
   Crown,
   ExternalLink,
-  Wrench,
-  Lightbulb,
   MessageCircle,
-  Info
+  Info,
+  Cpu,
+  MemoryStick,
+  HardDrive
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useSystemStats } from '@/hooks/useSystemStats';
 import { useSystemActions } from '@/hooks/useSystemActions';
 import { useToast } from '@/hooks/use-toast';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -22,6 +22,7 @@ import logoLatency from "/Latency.png";
 import { OutletContext } from '@/types/outlet-context';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSystemMetrics } from '@/hooks/useSystemMetrics';
 
 interface DashboardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -32,15 +33,9 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
   const [userName, setUserName] = useState<string>('');
   const [totalUsers, setTotalUsers] = useState<number>(0);
   
-  const systemStats = useSystemStats();
+  const { cpu, memory, disk, connectionStatus, isElectron: isElectronMetrics } = useSystemMetrics();
   const systemActions = useSystemActions();
   const { toast } = useToast();
-
-  const { 
-    cpu, 
-    connectionStatus, 
-    isElectron: isElectronStats,
-  } = systemStats;
 
   const { 
     optimizeSystem, 
@@ -105,17 +100,13 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
   }, [userId]);
 
   const getOptimizationLevel = () => {
-    if (cpu.usageTotal >= 80) return { level: 'Nível ruim', color: 'text-red-500', percent: cpu.usageTotal };
-    if (cpu.usageTotal >= 50) return { level: 'Nível médio', color: 'text-yellow-500', percent: cpu.usageTotal };
-    return { level: 'Nível bom', color: 'text-emerald-500', percent: Math.max(100 - cpu.usageTotal, 21) };
+    const cpuUsage = cpu.usage;
+    if (cpuUsage >= 80) return { level: 'Nível ruim', color: 'text-red-500', glowColor: 'shadow-red-500/50', percent: cpuUsage };
+    if (cpuUsage >= 50) return { level: 'Nível médio', color: 'text-yellow-500', glowColor: 'shadow-yellow-500/50', percent: cpuUsage };
+    return { level: 'Nível bom', color: 'text-emerald-500', glowColor: 'shadow-emerald-500/50', percent: Math.max(100 - cpuUsage, 21) };
   };
 
   const optimization = getOptimizationLevel();
-
-  const tools = [
-    { name: 'StoreX', icon: '🛒', color: 'from-purple-600 to-purple-800', url: '/optimization' },
-    { name: 'GameMode', icon: '🎮', color: 'from-orange-500 to-red-600', url: '/optimization' },
-  ];
 
   const news = [
     {
@@ -160,44 +151,60 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
       </div>
 
       {/* Stats Cards Row */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Usuários Card */}
-        <Card className="bg-card/50 border-border/50 backdrop-blur">
+      <div className="grid grid-cols-4 gap-4">
+        {/* CPU Card */}
+        <Card className="bg-card/50 border-border/50 backdrop-blur hover:shadow-lg hover:shadow-primary/20 transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-muted/50">
-                <Users className="w-6 h-6 text-muted-foreground" />
+              <div className="p-3 rounded-lg bg-primary/20">
+                <Cpu className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-foreground">
-                  {totalUsers > 0 ? totalUsers.toLocaleString('pt-BR').replace(/,/g, ' ') : '---'}
+                <p className={`text-2xl font-bold ${cpu.usage >= 80 ? 'text-red-500' : cpu.usage >= 50 ? 'text-yellow-500' : 'text-emerald-500'}`}>
+                  {cpu.usage}%
                 </p>
-                <p className="text-sm text-muted-foreground">Usuários</p>
+                <p className="text-sm text-muted-foreground">CPU</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Otimização Card */}
-        <Card className="bg-card/50 border-border/50 backdrop-blur">
+        {/* RAM Card */}
+        <Card className="bg-card/50 border-border/50 backdrop-blur hover:shadow-lg hover:shadow-secondary/20 transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-muted/50">
-                <Zap className="w-6 h-6 text-primary" />
+              <div className="p-3 rounded-lg bg-secondary/20">
+                <MemoryStick className="w-6 h-6 text-secondary" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Otimização:</p>
-                <p className={`text-2xl font-bold ${optimization.color}`}>
-                  {optimization.percent}%
+                <p className={`text-2xl font-bold ${memory.percent >= 80 ? 'text-red-500' : memory.percent >= 50 ? 'text-yellow-500' : 'text-emerald-500'}`}>
+                  {memory.percent}%
                 </p>
-                <p className={`text-sm ${optimization.color}`}>{optimization.level}</p>
+                <p className="text-sm text-muted-foreground">RAM ({memory.used.toFixed(1)}GB)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Disco Card */}
+        <Card className="bg-card/50 border-border/50 backdrop-blur hover:shadow-lg hover:shadow-accent/20 transition-all duration-300">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-accent/20">
+                <HardDrive className="w-6 h-6 text-accent-foreground" />
+              </div>
+              <div>
+                <p className={`text-2xl font-bold ${disk.percent >= 80 ? 'text-red-500' : disk.percent >= 50 ? 'text-yellow-500' : 'text-emerald-500'}`}>
+                  {disk.percent}%
+                </p>
+                <p className="text-sm text-muted-foreground">Disco ({disk.used.toFixed(0)}GB)</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* PRO Card */}
-        <Card className="bg-card/50 border-border/50 backdrop-blur">
+        <Card className="bg-card/50 border-border/50 backdrop-blur hover:shadow-lg hover:shadow-amber-500/20 transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -207,15 +214,10 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
                 <div>
                   <p className="text-xl font-bold text-foreground">PRO</p>
                   <p className="text-sm text-muted-foreground">
-                    {isFounder ? 'Acesso Vitalício' : 'Restante: ∞'}
+                    {isFounder ? 'Vitalício' : 'Ativo'}
                   </p>
                 </div>
               </div>
-              <Link to="/settings">
-                <Button variant="outline" size="sm">
-                  Página PRO
-                </Button>
-              </Link>
             </div>
           </CardContent>
         </Card>
@@ -223,10 +225,10 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-3 gap-6">
-        {/* Left Column - Hero + Tools */}
+        {/* Left Column - Hero */}
         <div className="col-span-2 space-y-6">
           {/* Hero Section */}
-          <Card className="relative overflow-hidden bg-gradient-to-br from-primary/20 via-card to-card border-primary/30">
+          <Card className="relative overflow-hidden bg-gradient-to-br from-primary/20 via-card to-card border-primary/30 hover:shadow-xl hover:shadow-primary/20 transition-all duration-500">
             <CardContent className="p-8 relative z-10">
               <div className="flex items-center gap-4 mb-4">
                 <img 
@@ -246,7 +248,7 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
               <Button 
                 onClick={optimizeSystem}
                 disabled={isProcessing || !isElectron}
-                className="btn-primary text-lg px-8 py-6 rounded-xl"
+                className="btn-primary text-lg px-8 py-6 rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all"
               >
                 Começar otimização
               </Button>
@@ -264,31 +266,6 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
               </svg>
             </div>
           </Card>
-
-          {/* Tools Section */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-muted-foreground" />
-                <h3 className="text-lg font-semibold">Ferramentas</h3>
-              </div>
-              <Link to="/optimization" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
-                ver tudo <ExternalLink className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {tools.map((tool) => (
-                <Link key={tool.name} to={tool.url}>
-                  <Card className={`bg-gradient-to-br ${tool.color} border-0 hover:scale-105 transition-transform cursor-pointer`}>
-                    <CardContent className="p-6 text-center">
-                      <span className="text-3xl">{tool.icon}</span>
-                      <p className="text-white font-bold mt-2">{tool.name}</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Right Column - News + Tips */}
@@ -347,10 +324,15 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
         currentStep={currentStep}
       />
 
-      {/* CPU Indicator - Bottom Left */}
+      {/* CPU Indicator - Bottom Left with Pulse Animation */}
       <div className="fixed bottom-6 left-20 z-50">
-        <div className="relative w-16 h-16">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+        <div className={`relative w-20 h-20 animate-pulse`}>
+          {/* Glow effect */}
+          <div className={`absolute inset-0 rounded-full blur-xl opacity-50 ${optimization.glowColor}`} 
+               style={{ boxShadow: `0 0 30px currentColor` }} />
+          
+          <svg className="w-full h-full transform -rotate-90 relative z-10" viewBox="0 0 64 64">
+            {/* Background circle */}
             <circle
               cx="32"
               cy="32"
@@ -360,6 +342,7 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
               fill="transparent"
               className="text-muted/30"
             />
+            {/* Progress circle */}
             <circle
               cx="32"
               cy="32"
@@ -367,14 +350,16 @@ const Dashboard = ({ className, ...props }: DashboardProps) => {
               stroke="currentColor"
               strokeWidth="4"
               fill="transparent"
-              strokeDasharray={`${(optimization.percent / 100) * 175.93} 175.93`}
-              className={optimization.color.replace('text-', 'text-')}
+              strokeDasharray={`${(cpu.usage / 100) * 175.93} 175.93`}
+              className={`${optimization.color} transition-all duration-500`}
+              style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
             />
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className={`text-sm font-bold ${optimization.color}`}>
-              {optimization.percent}%
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+            <span className={`text-lg font-bold ${optimization.color}`}>
+              {cpu.usage}%
             </span>
+            <span className="text-[10px] text-muted-foreground">CPU</span>
           </div>
         </div>
       </div>
